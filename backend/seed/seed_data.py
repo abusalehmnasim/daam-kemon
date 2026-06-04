@@ -55,11 +55,7 @@ async def seed() -> None:
             )
             await session.execute(stmt)
 
-        # Clear catalog tables: wipe seeded data to prepare for live scrapers
-        await session.execute(delete(StoreProduct))
-        await session.execute(delete(Product))
-        
-        logger.info("Cleared seeded catalog listings and initialized stores")
+        logger.info("Initialized stores in the database")
 
 
 def main() -> None:

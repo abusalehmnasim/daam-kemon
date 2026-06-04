@@ -58,6 +58,18 @@ async def run_migrations() -> None:
             logger.info("Executing migration SQL raw...")
             await raw_conn.execute(sql_content)
         logger.info("Migrations completed successfully")
+        
+        # Run seeding automatically
+        logger.info("Running database seeding...")
+        try:
+            from seed.seed_data import seed
+            from app.database import dispose as dispose_db
+            await seed()
+            await dispose_db()
+            logger.info("Seeding completed successfully")
+        except Exception as seed_err:
+            logger.error(f"Seeding failed: {seed_err}")
+            # Do not fail the whole migration if just seeding fails, but log it
     except Exception as e:
         logger.exception("Migration failed:")
         sys.exit(1)
