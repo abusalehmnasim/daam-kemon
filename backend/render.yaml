@@ -1,0 +1,54 @@
+databases:
+  - name: daamkemon-db
+    databaseName: daamkemon
+    user: daamkemon
+    plan: free
+
+services:
+  - type: redis
+    name: daamkemon-redis
+    plan: free
+    ipAllowList: [] # Only allow internal connections
+
+  - type: web
+    name: daamkemon-api
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: daamkemon-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: daamkemon-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+    # Run migrations before deploying the new version
+    preDeployCommand: python migrate.py
+
+  - type: worker
+    name: daamkemon-scheduler
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    dockerCommand: python -m scrapers.scheduler
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: daamkemon-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: daamkemon-redis
+          property: connectionString
+      - key: RUN_ON_STARTUP
+        value: "true"
+      - key: ENVIRONMENT
+        value: production

@@ -60,6 +60,15 @@ class ChaldalScraper(StoreScraper):
         "flour":       ["/atta-flour"],
         "soap":        ["/soap"],
         "detergent":   ["/laundry-detergent"],
+        # Backfilled categories:
+        "spices":      ["/spices"],
+        "salt":        ["/salt-sugar"],
+        "garam_masala":["/spices"],
+        "molasses":    ["/honey"],
+        "biscuits":    ["/plain-biscuits", "/cream-biscuits", "/toast-biscuits"],
+        "noodles":     ["/noodles"],
+        "tea":         ["/tea-coffee-2"],
+        "powdered_milk":["/powder-milk"],
     }
 
     PER_CATEGORY_CAP = 200

@@ -51,6 +51,15 @@ class OthobaScraper(StoreScraper):
         "flour":       ["/flour"],
         "soap":        ["/bath-soap"],
         "detergent":   ["/detergent-powder"],
+        # Backfilled categories:
+        "spices":      ["/spices"],
+        "salt":        ["/salt"],
+        "garam_masala":["/garam-masala"],
+        "molasses":    ["/gur"],
+        "biscuits":    ["/biscuits"],
+        "noodles":     ["/noodles"],
+        "tea":         ["/tea"],
+        "powdered_milk":["/powder-milk"],
     }
 
     PER_CATEGORY_CAP = 200

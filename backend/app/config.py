@@ -7,10 +7,18 @@ from functools import lru_cache
 
 
 class Settings:
-    database_url: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql+asyncpg://daamkemon:daamkemon@localhost:5432/daamkemon",
-    )
+    @property
+    def database_url(self) -> str:
+        url = os.getenv(
+            "DATABASE_URL",
+            "postgresql+asyncpg://daamkemon:daamkemon@localhost:5432/daamkemon",
+        )
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     cors_origins: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
     environment: str = os.getenv("ENVIRONMENT", "development")

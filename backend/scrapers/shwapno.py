@@ -58,6 +58,15 @@ class ShwapnoScraper(StoreScraper):
         "flour":       ["/atta-flour"],
         "soap":        ["/bath-soap"],
         "detergent":   ["/detergent-powder"],
+        # Backfilled categories:
+        "spices":      ["/spices"],
+        "salt":        ["/salt"],
+        "garam_masala":["/Wholespice", "/Mixed-Spice"],
+        "molasses":    ["/honey"],
+        "biscuits":    ["/biscuits"],
+        "noodles":     ["/noodles"],
+        "tea":         ["/tea"],
+        "powdered_milk":["/powder-milk"],
     }
 
     PER_CATEGORY_CAP = 200

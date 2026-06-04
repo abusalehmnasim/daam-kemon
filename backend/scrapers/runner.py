@@ -91,6 +91,9 @@ async def _get_or_create_product(session, np) -> Product:
         "cooking_oil": "Oil", "rice": "Rice", "sugar": "Sugar", "eggs": "Eggs",
         "milk": "Milk", "lentils": "Dal", "flour": "Flour",
         "soap": "Soap", "detergent": "Detergent",
+        "spices": "Spices", "salt": "Salt", "garam_masala": "Masala",
+        "molasses": "Gur", "biscuits": "Biscuits", "noodles": "Noodles",
+        "tea": "Tea", "powdered_milk": "Powdered Milk",
     }.get(np.category, np.category.replace("_", " ").title()))
     if np.size_value and np.size_unit:
         v = int(np.size_value) if float(np.size_value).is_integer() else np.size_value

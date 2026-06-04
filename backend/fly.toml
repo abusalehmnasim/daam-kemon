@@ -1,0 +1,39 @@
+app = "daamkemon-backend"
+primary_region = "sin" # Singapore region is ideal for Bangladesh latency
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "python migrate.py"
+
+[processes]
+  web = "uvicorn app.main:app --host 0.0.0.0 --port 8080"
+  scheduler = "python -m scrapers.scheduler"
+
+[[services]]
+  processes = ["web"]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.concurrency]]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.http_checks]]
+    interval = 10000
+    grace_period = "5s"
+    method = "get"
+    path = "/docs"
+    protocol = "http"
+    timeout = 2000
