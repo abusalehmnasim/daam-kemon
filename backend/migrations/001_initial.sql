@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- Canonical product groups. One row per "thing the shopper actually wants"
 -- (e.g. "Fresh Soybean Oil 5L", or for loose goods "Miniket Rice (loose)").
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id              BIGSERIAL PRIMARY KEY,
     name            TEXT        NOT NULL,
     normalized_name TEXT        NOT NULL,
@@ -24,15 +24,15 @@ CREATE TABLE products (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX products_normalized_name_trgm ON products USING gin (normalized_name gin_trgm_ops);
-CREATE INDEX products_category_idx         ON products (category, subcategory);
-CREATE INDEX products_brand_idx            ON products (brand);
-CREATE UNIQUE INDEX products_dedupe_key
+CREATE INDEX IF NOT EXISTS products_normalized_name_trgm ON products USING gin (normalized_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS products_category_idx         ON products (category, subcategory);
+CREATE INDEX IF NOT EXISTS products_brand_idx            ON products (brand);
+CREATE UNIQUE INDEX IF NOT EXISTS products_dedupe_key
     ON products (category, COALESCE(subcategory,''), COALESCE(brand,''), COALESCE(size_unit,''), COALESCE(size_value, 0), is_loose);
 
 -- One row per (store, listing). The price/availability snapshot lives here;
 -- history is appended into price_history on every scrape cycle.
-CREATE TABLE store_products (
+CREATE TABLE IF NOT EXISTS store_products (
     id                  BIGSERIAL PRIMARY KEY,
     product_id          BIGINT REFERENCES products(id) ON DELETE SET NULL,
     store_name          TEXT        NOT NULL,
@@ -53,22 +53,22 @@ CREATE TABLE store_products (
     UNIQUE (store_name, store_product_id)
 );
 
-CREATE INDEX store_products_product_idx     ON store_products (product_id);
-CREATE INDEX store_products_store_idx       ON store_products (store_name);
-CREATE INDEX store_products_name_trgm       ON store_products USING gin (store_product_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS store_products_product_idx     ON store_products (product_id);
+CREATE INDEX IF NOT EXISTS store_products_store_idx       ON store_products (store_name);
+CREATE INDEX IF NOT EXISTS store_products_name_trgm       ON store_products USING gin (store_product_name gin_trgm_ops);
 
 -- Append-only price history. Keep small per row, query by (store_product_id, observed_at).
-CREATE TABLE price_history (
+CREATE TABLE IF NOT EXISTS price_history (
     id                BIGSERIAL PRIMARY KEY,
     store_product_id  BIGINT NOT NULL REFERENCES store_products(id) ON DELETE CASCADE,
     price             NUMERIC(10,2) NOT NULL,
     in_stock          BOOLEAN NOT NULL,
     observed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX price_history_sp_time_idx ON price_history (store_product_id, observed_at DESC);
+CREATE INDEX IF NOT EXISTS price_history_sp_time_idx ON price_history (store_product_id, observed_at DESC);
 
 -- Store metadata. Delivery fee tiers stay here as JSON (each store has different rules).
-CREATE TABLE stores (
+CREATE TABLE IF NOT EXISTS stores (
     name              TEXT PRIMARY KEY,
     display_name      TEXT NOT NULL,
     base_url          TEXT NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE stores (
 );
 
 -- Baskets (anonymous-friendly: user_id nullable, session_id supported).
-CREATE TABLE baskets (
+CREATE TABLE IF NOT EXISTS baskets (
     id           BIGSERIAL PRIMARY KEY,
     user_id      TEXT,
     session_id   TEXT,
@@ -86,10 +86,10 @@ CREATE TABLE baskets (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX baskets_session_idx ON baskets (session_id);
+CREATE INDEX IF NOT EXISTS baskets_session_idx ON baskets (session_id);
 
 -- Outbound click tracking (monetization hook only; do not build attribution yet).
-CREATE TABLE outbound_clicks (
+CREATE TABLE IF NOT EXISTS outbound_clicks (
     id                BIGSERIAL PRIMARY KEY,
     store_product_id  BIGINT REFERENCES store_products(id) ON DELETE SET NULL,
     store_name        TEXT NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE outbound_clicks (
 );
 
 -- Scrape run log (so a flaky day on one store doesn't silently kill the pipeline).
-CREATE TABLE scrape_runs (
+CREATE TABLE IF NOT EXISTS scrape_runs (
     id            BIGSERIAL PRIMARY KEY,
     store_name    TEXT NOT NULL,
     started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -109,4 +109,4 @@ CREATE TABLE scrape_runs (
     items_matched INT NOT NULL DEFAULT 0,
     error         TEXT
 );
-CREATE INDEX scrape_runs_store_time_idx ON scrape_runs (store_name, started_at DESC);
+CREATE INDEX IF NOT EXISTS scrape_runs_store_time_idx ON scrape_runs (store_name, started_at DESC);
