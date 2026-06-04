@@ -49,27 +49,43 @@ async def run_migrations() -> None:
     # Create async engine and execute SQL statements
     logger.info("Connecting to the database...")
     engine = create_async_engine(db_url, future=True)
+    
     try:
-        async with engine.begin() as conn:
-            logger.info("Accessing raw connection...")
-            dbapi_conn = await conn.get_raw_connection()
-            # Retrieve the underlying raw asyncpg Connection object from the wrapper
-            raw_conn = dbapi_conn.driver_connection
-            logger.info("Executing migration SQL raw...")
-            await raw_conn.execute(sql_content)
-        logger.info("Migrations completed successfully")
+        max_retries = 20
+        retry_delay = 3
+        connected = False
         
-        # Run seeding automatically
-        logger.info("Running database seeding...")
-        try:
-            from seed.seed_data import seed
-            from app.database import dispose as dispose_db
-            await seed()
-            await dispose_db()
-            logger.info("Seeding completed successfully")
-        except Exception as seed_err:
-            logger.error(f"Seeding failed: {seed_err}")
-            # Do not fail the whole migration if just seeding fails, but log it
+        for attempt in range(1, max_retries + 1):
+            try:
+                async with engine.begin() as conn:
+                    logger.info("Accessing raw connection...")
+                    dbapi_conn = await conn.get_raw_connection()
+                    # Retrieve the underlying raw asyncpg Connection object from the wrapper
+                    raw_conn = dbapi_conn.driver_connection
+                    logger.info("Executing migration SQL raw...")
+                    await raw_conn.execute(sql_content)
+                connected = True
+                logger.info("Migrations completed successfully")
+                break
+            except Exception as e:
+                logger.warning(f"Database connection attempt {attempt}/{max_retries} failed: {e}")
+                if attempt == max_retries:
+                    logger.exception("Migration failed after maximum retries:")
+                    sys.exit(1)
+                await asyncio.sleep(retry_delay)
+                
+        if connected:
+            # Run seeding automatically
+            logger.info("Running database seeding...")
+            try:
+                from seed.seed_data import seed
+                from app.database import dispose as dispose_db
+                await seed()
+                await dispose_db()
+                logger.info("Seeding completed successfully")
+            except Exception as seed_err:
+                logger.error(f"Seeding failed: {seed_err}")
+                # Do not fail the whole migration if just seeding fails, but log it
     except Exception as e:
         logger.exception("Migration failed:")
         sys.exit(1)
