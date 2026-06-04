@@ -14,8 +14,8 @@ services:
     name: daamkemon-api
     env: docker
     plan: free
-    dockerfilePath: Dockerfile
-    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -35,8 +35,8 @@ services:
     name: daamkemon-scheduler
     env: docker
     plan: free
-    dockerfilePath: Dockerfile
-    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     dockerCommand: python -m scrapers.scheduler
     envVars:
       - key: DATABASE_URL
