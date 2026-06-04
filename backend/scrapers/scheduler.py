@@ -89,12 +89,19 @@ async def cleanup_stale_listings() -> None:
 
 # --- Entry point ------------------------------------------------------------
 
-async def main_async() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    scheduler = AsyncIOScheduler(timezone="UTC")
+_scheduler = None
+
+
+def start_scheduler_in_background() -> AsyncIOScheduler:
+    """Start the APScheduler on the running asyncio event loop."""
+    global _scheduler
+    if _scheduler is not None:
+        return _scheduler
+
+    _scheduler = AsyncIOScheduler(timezone="UTC")
 
     # Periodic scrape
-    scheduler.add_job(
+    _scheduler.add_job(
         scrape_all_stores,
         trigger=IntervalTrigger(hours=SCRAPE_INTERVAL_HOURS),
         id="scrape_all_stores",
@@ -103,7 +110,7 @@ async def main_async() -> None:
         coalesce=True,
     )
     # Daily cleanup at 03:00 UTC (~09:00 BST) — outside likely scrape windows
-    scheduler.add_job(
+    _scheduler.add_job(
         cleanup_stale_listings,
         trigger=CronTrigger(hour=3, minute=0),
         id="cleanup_stale_listings",
@@ -112,14 +119,19 @@ async def main_async() -> None:
         coalesce=True,
     )
 
-    scheduler.start()
-    logger.info("Scheduler started. Jobs: %s",
-                [{"id": j.id, "next": str(j.next_run_time)} for j in scheduler.get_jobs()])
+    _scheduler.start()
+    logger.info("Scheduler started in background. Jobs: %s",
+                [{"id": j.id, "next": str(j.next_run_time)} for j in _scheduler.get_jobs()])
 
-    # Kick off an immediate run so we don't wait SCRAPE_INTERVAL_HOURS for the
-    # first refresh. Fire-and-forget; the scheduler still owns the recurring one.
     if RUN_ON_STARTUP:
         asyncio.create_task(_kick_initial_run())
+
+    return _scheduler
+
+
+async def main_async() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    start_scheduler_in_background()
 
     # Block forever — APScheduler runs as background tasks in the asyncio loop.
     while True:
@@ -128,6 +140,31 @@ async def main_async() -> None:
 
 async def _kick_initial_run() -> None:
     await asyncio.sleep(5)  # let the DB finish coming up if we started in parallel
+    
+    # Smart throttle check: don't run if we had a successful scrape recently
+    try:
+        async with session_scope() as session:
+            from sqlalchemy import text
+            result = await session.execute(
+                text("SELECT MAX(finished_at) FROM scrape_runs WHERE status = 'success'")
+            )
+            last_finished = result.scalar()
+            
+        if last_finished:
+            # Ensure it is timezone-aware
+            if last_finished.tzinfo is None:
+                last_finished = last_finished.replace(tzinfo=timezone.utc)
+            else:
+                last_finished = last_finished.astimezone(timezone.utc)
+                
+            elapsed = datetime.now(timezone.utc) - last_finished
+            interval = timedelta(hours=SCRAPE_INTERVAL_HOURS)
+            if elapsed < interval:
+                logger.info("Skipping startup scrape: last successful run was %s ago (threshold is %s)", elapsed, interval)
+                return
+    except Exception as check_err:
+        logger.warning(f"Could not check last scrape run status: {check_err}. Proceeding with startup run.")
+
     logger.info("Running initial scrape on startup (RUN_ON_STARTUP=true)")
     try:
         await scrape_all_stores()

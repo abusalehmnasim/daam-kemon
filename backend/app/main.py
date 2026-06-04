@@ -46,6 +46,17 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.on_event("startup")
+async def _startup() -> None:
+    if settings().environment == "production":
+        logging.info("Starting background scraper scheduler in production environment...")
+        try:
+            from scrapers.scheduler import start_scheduler_in_background
+            start_scheduler_in_background()
+        except Exception as e:
+            logging.exception("Failed to start scheduler on API startup:")
+
+
 @app.on_event("shutdown")
 async def _shutdown() -> None:
     await dispose()
