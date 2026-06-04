@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: daamkemon
+      POSTGRES_USER: daamkemon
+      POSTGRES_PASSWORD: daamkemon
+    ports:
+      - "5432:5432"
+    volumes:
+      - dk_pg:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daamkemon"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ./backend
+    image: daamkemon-api:latest     # explicit tag so scheduler can reuse this image
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://daamkemon:daamkemon@db:5432/daamkemon
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+
+  scheduler:
+    # Reuse the api image — same code, different command. Saves a duplicate
+    # build of Chromium + Python deps.
+    image: daamkemon-api:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://daamkemon:daamkemon@db:5432/daamkemon
+      REDIS_URL: redis://redis:6379/0
+      SCRAPE_INTERVAL_HOURS: "6"        # spec: every 6-12h
+      INTER_STORE_DELAY_S: "60"         # polite gap between stores
+      STALE_DAYS: "7"                   # delete listings unseen this long
+      RUN_ON_STARTUP: "true"            # kick off the first scrape immediately
+    command: ["python", "-m", "scrapers.scheduler"]
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    environment:
+      # Server-side rewrite target: browser hits /api/* on the web container,
+      # Next.js forwards to the api service over Docker's internal network.
+      # Plain env var (not NEXT_PUBLIC_) so it's read at runtime, not build time.
+      INTERNAL_API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+
+volumes:
+  dk_pg:

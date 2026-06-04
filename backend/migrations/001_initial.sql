@@ -1,0 +1,112 @@
+-- Daam Kemon initial schema
+-- Designed for messy Bangladesh grocery data: products are canonical,
+-- store_products are observed listings that map (probabilistically) onto products.
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- Canonical product groups. One row per "thing the shopper actually wants"
+-- (e.g. "Fresh Soybean Oil 5L", or for loose goods "Miniket Rice (loose)").
+CREATE TABLE products (
+    id              BIGSERIAL PRIMARY KEY,
+    name            TEXT        NOT NULL,
+    normalized_name TEXT        NOT NULL,
+    brand           TEXT,
+    category        TEXT        NOT NULL,
+    subcategory     TEXT,
+    size_value      NUMERIC(10,3),          -- e.g. 5.000
+    size_unit       TEXT,                   -- L, ML, KG, G, PCS
+    base_unit_qty   NUMERIC(12,4),          -- normalized to base unit (ml / g / pcs) for per-unit pricing
+    is_loose        BOOLEAN     NOT NULL DEFAULT FALSE,
+    barcode         TEXT,
+    metadata        JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX products_normalized_name_trgm ON products USING gin (normalized_name gin_trgm_ops);
+CREATE INDEX products_category_idx         ON products (category, subcategory);
+CREATE INDEX products_brand_idx            ON products (brand);
+CREATE UNIQUE INDEX products_dedupe_key
+    ON products (category, COALESCE(subcategory,''), COALESCE(brand,''), COALESCE(size_unit,''), COALESCE(size_value, 0), is_loose);
+
+-- One row per (store, listing). The price/availability snapshot lives here;
+-- history is appended into price_history on every scrape cycle.
+CREATE TABLE store_products (
+    id                  BIGSERIAL PRIMARY KEY,
+    product_id          BIGINT REFERENCES products(id) ON DELETE SET NULL,
+    store_name          TEXT        NOT NULL,
+    store_product_id    TEXT        NOT NULL,        -- store's own SKU / slug
+    store_product_name  TEXT        NOT NULL,
+    store_product_url   TEXT,
+    image_url           TEXT,
+    price               NUMERIC(10,2) NOT NULL,
+    original_price      NUMERIC(10,2),
+    currency            TEXT        NOT NULL DEFAULT 'BDT',
+    in_stock            BOOLEAN     NOT NULL DEFAULT TRUE,
+    delivery_fee        NUMERIC(10,2),               -- nullable; some stores tier this
+    match_confidence    NUMERIC(4,3),                -- 0..1, how sure are we about product_id
+    match_method        TEXT,                        -- exact | brand | category | manual | unmatched
+    raw                 JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    first_seen_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (store_name, store_product_id)
+);
+
+CREATE INDEX store_products_product_idx     ON store_products (product_id);
+CREATE INDEX store_products_store_idx       ON store_products (store_name);
+CREATE INDEX store_products_name_trgm       ON store_products USING gin (store_product_name gin_trgm_ops);
+
+-- Append-only price history. Keep small per row, query by (store_product_id, observed_at).
+CREATE TABLE price_history (
+    id                BIGSERIAL PRIMARY KEY,
+    store_product_id  BIGINT NOT NULL REFERENCES store_products(id) ON DELETE CASCADE,
+    price             NUMERIC(10,2) NOT NULL,
+    in_stock          BOOLEAN NOT NULL,
+    observed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX price_history_sp_time_idx ON price_history (store_product_id, observed_at DESC);
+
+-- Store metadata. Delivery fee tiers stay here as JSON (each store has different rules).
+CREATE TABLE stores (
+    name              TEXT PRIMARY KEY,
+    display_name      TEXT NOT NULL,
+    base_url          TEXT NOT NULL,
+    delivery_config   JSONB NOT NULL DEFAULT '{}'::jsonb,
+    affiliate_config  JSONB NOT NULL DEFAULT '{}'::jsonb,    -- monetization hook
+    active            BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- Baskets (anonymous-friendly: user_id nullable, session_id supported).
+CREATE TABLE baskets (
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      TEXT,
+    session_id   TEXT,
+    items        JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX baskets_session_idx ON baskets (session_id);
+
+-- Outbound click tracking (monetization hook only; do not build attribution yet).
+CREATE TABLE outbound_clicks (
+    id                BIGSERIAL PRIMARY KEY,
+    store_product_id  BIGINT REFERENCES store_products(id) ON DELETE SET NULL,
+    store_name        TEXT NOT NULL,
+    session_id        TEXT,
+    referrer          TEXT,
+    clicked_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Scrape run log (so a flaky day on one store doesn't silently kill the pipeline).
+CREATE TABLE scrape_runs (
+    id            BIGSERIAL PRIMARY KEY,
+    store_name    TEXT NOT NULL,
+    started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at   TIMESTAMPTZ,
+    status        TEXT NOT NULL DEFAULT 'running',  -- running | success | partial | failed
+    items_scraped INT NOT NULL DEFAULT 0,
+    items_matched INT NOT NULL DEFAULT 0,
+    error         TEXT
+);
+CREATE INDEX scrape_runs_store_time_idx ON scrape_runs (store_name, started_at DESC);
