@@ -28,8 +28,6 @@ services:
           property: connectionString
       - key: ENVIRONMENT
         value: production
-    # Run migrations before deploying the new version
-    preDeployCommand: python migrate.py
 
   - type: worker
     name: daamkemon-scheduler
