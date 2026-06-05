@@ -48,13 +48,17 @@ async def healthz() -> dict[str, str]:
 
 @app.on_event("startup")
 async def _startup() -> None:
+    import os
     if settings().environment == "production":
-        logging.info("Starting background scraper scheduler in production environment...")
-        try:
-            from scrapers.scheduler import start_scheduler_in_background
-            start_scheduler_in_background()
-        except Exception as e:
-            logging.exception("Failed to start scheduler on API startup:")
+        if os.getenv("ENABLE_SCHEDULER", "true").lower() == "true":
+            logging.info("Starting background scraper scheduler in production environment...")
+            try:
+                from scrapers.scheduler import start_scheduler_in_background
+                start_scheduler_in_background()
+            except Exception as e:
+                logging.exception("Failed to start scheduler on API startup:")
+        else:
+            logging.info("Background scraper scheduler is disabled (ENABLE_SCHEDULER=false)")
 
 
 @app.on_event("shutdown")

@@ -28,5 +28,5 @@ services:
           property: connectionString
       - key: ENVIRONMENT
         value: production
-      - key: RUN_ON_STARTUP
-        value: "true"
+      - key: ENABLE_SCHEDULER
+        value: "false"
