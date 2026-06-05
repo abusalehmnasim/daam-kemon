@@ -52,14 +52,14 @@ class ChaldalScraper(StoreScraper):
     # `/milk`, `/dal-pulses`, `/atta-flour`, `/soap`, `/laundry-detergent`.
     category_targets = {
         "cooking_oil": ["/oil"],
-        "rice":        ["/rice"],
-        "sugar":       ["/sugar"],
-        "eggs":        ["/egg"],
-        "milk":        ["/milk"],
-        "lentils":     ["/dal-pulses"],
-        "flour":       ["/atta-flour"],
-        "soap":        ["/soap"],
-        "detergent":   ["/laundry-detergent"],
+        "rice":        ["/rices"],
+        "sugar":       ["/salt-sugar"],
+        "eggs":        ["/eggs"],
+        "milk":        ["/fresh-milk"],
+        "lentils":     ["/dal-or-lentil"],
+        "flour":       ["/flour"],
+        "soap":        ["/soaps", "/womens-soaps"],
+        "detergent":   ["/laundry"],
         # Backfilled categories:
         "spices":      ["/spices"],
         "salt":        ["/salt-sugar"],
@@ -83,26 +83,46 @@ class ChaldalScraper(StoreScraper):
             logger.warning("[chaldal] %s: no cards rendered (selector %r)", url, CARD_SEL)
             return
 
-        seen_slugs: set[str] = set()
+        # Scroll to load all cards first
         last_count = -1
         for _ in range(self.SCROLL_PASSES):
             cards = await page.query_selector_all(CARD_SEL)
             if len(cards) == last_count:
-                break       # no new cards after a scroll — we've reached the bottom
+                break
             last_count = len(cards)
-            for card in cards[: self.PER_CATEGORY_CAP]:
-                listing = await self._extract_card(card)
-                if listing is None or listing.store_product_id in seen_slugs:
-                    continue
-                seen_slugs.add(listing.store_product_id)
-                yield listing
             await page.mouse.wheel(0, 8000)
-            await page.wait_for_timeout(1200)
+            await page.wait_for_timeout(1000)
 
-    async def _extract_card(self, card) -> RawListing | None:
+        # Extract all cards in a single DOM evaluation round-trip
         try:
-            inner = (await card.inner_text()).strip()
-            if not inner:
+            card_data = await page.evaluate(
+                r"""() => {
+                    const cards = Array.from(document.querySelectorAll('div.productV2Catalog'));
+                    return cards.map(card => {
+                        const inner = card.innerText ? card.innerText.trim() : '';
+                        const img = card.querySelector('img');
+                        const img_src = img ? img.getAttribute('src') : null;
+                        return { inner, img_src };
+                    });
+                }"""
+            )
+        except Exception as exc:
+            logger.warning("[chaldal] DOM evaluation failed for %s: %s", url, exc)
+            return
+
+        seen_slugs: set[str] = set()
+        for item in card_data[: self.PER_CATEGORY_CAP]:
+            listing = self._extract_card_data(item)
+            if listing is None or listing.store_product_id in seen_slugs:
+                continue
+            seen_slugs.add(listing.store_product_id)
+            yield listing
+
+    def _extract_card_data(self, item: dict) -> RawListing | None:
+        try:
+            inner = item["inner"].strip()
+            img_src = item["img_src"]
+            if not inner or not img_src:
                 return None
 
             price_match = _PRICE_RE.search(inner)
@@ -110,10 +130,7 @@ class ChaldalScraper(StoreScraper):
                 return None
             price = float(price_match.group(1))
 
-            # Slug + product URL from the card's image src
-            img_el = await card.query_selector(IMG_SEL)
-            img_src = await img_el.get_attribute("src") if img_el else None
-            slug_match = _SLUG_FROM_IMG.search(img_src or "")
+            slug_match = _SLUG_FROM_IMG.search(img_src)
             if not slug_match:
                 return None
             slug = slug_match.group(1)
@@ -121,9 +138,6 @@ class ChaldalScraper(StoreScraper):
             sku = f"chaldal:{slug}"
 
             # Name = everything except the price token and the trailing delivery suffix.
-            # Chaldal lays out the card text as several lines (product name on one,
-            # size on another). Join them so the normalizer can extract size — picking
-            # the longest line drops "500 ml" etc.
             name_part = inner[price_match.end():].strip()
             name_part = _DELIVERY_RE.sub("", name_part).strip()
             lines = [ln.strip() for ln in name_part.splitlines() if ln.strip()]

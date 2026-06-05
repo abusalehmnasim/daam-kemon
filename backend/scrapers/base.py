@@ -104,7 +104,7 @@ class StoreScraper(abc.ABC):
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0 Safari/537.36 DaamKemonBot/0.1"
+                    "Chrome/124.0 Safari/537.36"
                 ),
                 locale="en-US",
             )
@@ -119,7 +119,7 @@ class StoreScraper(abc.ABC):
                             async for listing in self.scrape_category(page, cat, target):
                                 listing.category_hint = listing.category_hint or cat
                                 yield listing
-                                await self._polite_wait()
+                            await self._polite_wait()
                         except Exception as exc:  # noqa: BLE001
                             logger.exception("[%s] category %s/%s failed: %s",
                                              self.store_name, cat, target, exc)

@@ -81,39 +81,73 @@ class ShwapnoScraper(StoreScraper):
             logger.warning("[shwapno] %s: no cards rendered (selector %r)", url, CARD_SEL)
             return
 
-        seen_slugs: set[str] = set()
+        # Scroll to load all cards first
         last_count = -1
         for _ in range(self.SCROLL_PASSES):
             cards = await page.query_selector_all(CARD_SEL)
             if len(cards) == last_count:
                 break
             last_count = len(cards)
-            for card in cards[: self.PER_CATEGORY_CAP]:
-                listing = await self._extract_card(card)
-                if listing is None or listing.store_product_id in seen_slugs:
-                    continue
-                seen_slugs.add(listing.store_product_id)
-                yield listing
             await page.mouse.wheel(0, 8000)
-            await page.wait_for_timeout(1200)
+            await page.wait_for_timeout(1000)
 
-    async def _extract_card(self, card) -> RawListing | None:
+        # Extract all cards in a single DOM evaluation round-trip
         try:
-            # Link / URL — first anchor that looks like a product slug
-            link_el = await card.query_selector(LINK_SEL)
-            href = await link_el.get_attribute("href") if link_el else None
+            card_data = await page.evaluate(
+                r"""({ cardSel, linkSel, priceSel, nameSel, imgSel }) => {
+                    const cards = Array.from(document.querySelectorAll(cardSel));
+                    return cards.map(card => {
+                        const inner = card.innerText ? card.innerText.trim() : '';
+                        
+                        const linkEl = card.querySelector(linkSel);
+                        const href = linkEl ? linkEl.getAttribute('href') : null;
+                        
+                        const priceEl = card.querySelector(priceSel);
+                        const priceText = priceEl ? priceEl.innerText : null;
+                        
+                        const nameEl = card.querySelector(nameSel);
+                        const nameText = nameEl ? nameEl.innerText : null;
+                        
+                        const imgEl = card.querySelector(imgSel);
+                        const img_src = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src')) : null;
+                        
+                        return { inner, href, priceText, nameText, img_src };
+                    });
+                }""",
+                {
+                    "cardSel": CARD_SEL,
+                    "linkSel": LINK_SEL,
+                    "priceSel": ".active-price",
+                    "nameSel": NAME_SEL,
+                    "imgSel": IMG_SEL,
+                }
+            )
+        except Exception as exc:
+            logger.warning("[shwapno] DOM evaluation failed for %s: %s", url, exc)
+            return
+
+        seen_slugs: set[str] = set()
+        for item in card_data[: self.PER_CATEGORY_CAP]:
+            listing = self._extract_card_data(item)
+            if listing is None or listing.store_product_id in seen_slugs:
+                continue
+            seen_slugs.add(listing.store_product_id)
+            yield listing
+
+    def _extract_card_data(self, item: dict) -> RawListing | None:
+        try:
+            href = item["href"]
             if not href or href in ("/", "#"):
                 return None
             url = href if href.startswith("http") else (self.base_url + href)
             slug = href.lstrip("/").split("?", 1)[0].rstrip("/")
             sku = f"shwapno:{slug}"
 
-            # Price — read the .active-price text first; fall back to a regex on inner_text
+            # Price
             price = None
-            price_el = await card.query_selector(".active-price")
-            if price_el:
-                price = _parse_price(await price_el.inner_text())
-            inner = (await card.inner_text()).strip()
+            if item["priceText"]:
+                price = _parse_price(item["priceText"])
+            inner = item["inner"]
             if price is None:
                 m = _PRICE_RE.search(inner)
                 if m:
@@ -121,12 +155,10 @@ class ShwapnoScraper(StoreScraper):
             if price is None:
                 return None
 
-            # Name. Try a structured selector first; fall back to text munging.
-            name_el = await card.query_selector(NAME_SEL)
-            if name_el:
-                name = (await name_el.inner_text()).strip()
+            # Name
+            if item["nameText"]:
+                name = item["nameText"].strip()
             else:
-                # innerText is "Delivery 1-2 hours <Name> ৳975 Per Piece Add to Bag"
                 stripped = _DELIVERY_PREFIX.sub("", inner)
                 m = _PRICE_RE.search(stripped)
                 if m:
@@ -138,10 +170,7 @@ class ShwapnoScraper(StoreScraper):
                 return None
 
             # Image
-            img_el = await card.query_selector(IMG_SEL)
-            img = None
-            if img_el:
-                img = await img_el.get_attribute("src") or await img_el.get_attribute("data-src")
+            img = item["img_src"]
 
             return RawListing(
                 store_product_id=sku,
