@@ -240,7 +240,24 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
                 except Exception as per_item_exc:  # noqa: BLE001
                     logger.warning("[%s] skipping %r: %s",
                                    scraper.store_name, listing.store_product_id, per_item_exc)
-                    # savepoint already rolled back; outer transaction is fine
+                    import sqlalchemy.exc
+                    is_conn_err = False
+                    if isinstance(per_item_exc, sqlalchemy.exc.PendingRollbackError):
+                        is_conn_err = True
+                    elif isinstance(per_item_exc, sqlalchemy.exc.DBAPIError):
+                        if isinstance(per_item_exc, sqlalchemy.exc.OperationalError):
+                            is_conn_err = True
+                        else:
+                            err_msg = str(per_item_exc).lower()
+                            if any(k in err_msg for k in ("connection", "closed", "disconnect", "shutdown")):
+                                is_conn_err = True
+                    
+                    if is_conn_err or not session.is_active:
+                        logger.warning("[%s] Database transaction is invalid or connection lost. Resetting session...", scraper.store_name)
+                        try:
+                            await session.rollback()
+                        except Exception as rollback_exc:
+                            logger.warning("[%s] Rollback failed: %s", scraper.store_name, rollback_exc)
                     continue
 
                 # Commit every 50 items so a crash mid-run doesn't lose everything.
