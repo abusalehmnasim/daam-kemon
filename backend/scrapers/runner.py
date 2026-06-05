@@ -98,6 +98,21 @@ async def _get_or_create_product(session, np) -> Product:
     if np.size_value and np.size_unit:
         v = int(np.size_value) if float(np.size_value).is_integer() else np.size_value
         parts.append(f"{v}{np.size_unit}")
+    # Check if a product with the exact same dedupe key attributes already exists
+    # to avoid unique constraint violations on product creation.
+    dup_stmt = select(Product).where(
+        Product.category == np.category,
+        Product.subcategory == np.subcategory,
+        Product.brand == np.brand,
+        Product.size_unit == np.size_unit,
+        Product.size_value == np.size_value,
+        Product.is_loose == np.is_loose
+    )
+    dup_res = await session.execute(dup_stmt)
+    existing_dup = dup_res.scalar_one_or_none()
+    if existing_dup is not None:
+        return existing_dup
+
     canonical_name = " ".join(parts)
 
     product = Product(
