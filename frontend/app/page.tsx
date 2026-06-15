@@ -17,7 +17,7 @@ export default function HomePage() {
           One basket, every store. <span className="text-brand">Cheaper.</span>
         </h1>
         <p className="text-gray-600 max-w-xl mx-auto">
-          Compare grocery prices across Chaldal, Shwapno and Pandamart — and find
+          Compare grocery prices across Chaldal, Shwapno, Othoba and Unimart — and find
           the cheapest way to buy your whole basket.
         </p>
         <div className="max-w-xl mx-auto pt-2">

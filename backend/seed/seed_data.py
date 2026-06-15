@@ -41,6 +41,13 @@ STORES = [
         "delivery_config": {"flat": 80},
         "affiliate_config": {},
     },
+    {
+        "name": "unimart",
+        "display_name": "Unimart",
+        "base_url": "https://unimart.online",
+        "delivery_config": {"flat": 80},
+        "affiliate_config": {},
+    },
 ]
 
 

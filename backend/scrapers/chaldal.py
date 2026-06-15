@@ -1,46 +1,29 @@
 """
 Chaldal scraper.
 
-Chaldal is a React SPA with stable React-component class names. Verified via a
-probe against the live site (`scrapers/_probe_chaldal.py`):
+Chaldal uses a JSON API endpoint:
+  POST https://catalog.chaldal.com/searchPersonalized
+which handles catalog queries and returns paginated search/category results.
 
-  - Cards on a category page are `div.productV2Catalog` (~48 per scroll pass).
-  - Cards have no `<a href>`; they're click-handled in React. The product URL
-    is derivable from the card's `<img>` src, which has the form
-        chaldn.com/_mpimage/<slug>?src=...
-    The product page is then `https://chaldal.com/<slug>`.
-  - Each card's `innerText` looks like:
-        "৳ 355 Rahul Pure Mustard Oil 1 ltr 1 hr"
-    i.e. price token, then product name, then a delivery-time suffix.
-  - Out-of-stock cards include the text "Sold out" or have an `outOfStock` class
-    on the inner button.
-
-Categories: Chaldal uses /<slug> directly (no /category/ prefix). `/oil` works;
-the old `/cooking-oil` 404s.
-
-If the site changes, all selectors and regexes live at the top of this file.
+We query this API directly via Python's `httpx` client. This is faster and avoids
+any browser evaluation hangs while correctly retrieving out-of-stock items.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 from typing import AsyncIterator
+import httpx
 
 from .base import RawListing, StoreScraper
 
 logger = logging.getLogger(__name__)
 
 
-# Selectors and regexes — patch here when Chaldal redesigns.
-CARD_SEL       = "div.productV2Catalog"
-IMG_SEL        = "img"
+# Selectors and regexes — retained for reference or compatibility
+CARD_SEL = "div.productV2Catalog"
+IMG_SEL = "img"
 OUT_OF_STOCK_TEXT = "sold out"
-
-# innerText parsing
-_PRICE_RE     = re.compile(r"৳\s*(\d+(?:\.\d+)?)")
-_DELIVERY_RE  = re.compile(r"\s*\d+\s*(?:hr|hour|min|minute|day)s?\s*$", re.IGNORECASE)
-_SLUG_FROM_IMG = re.compile(r"/_mpimage/([a-z0-9\-]+)")
 
 
 class ChaldalScraper(StoreScraper):
@@ -48,113 +31,117 @@ class ChaldalScraper(StoreScraper):
     display_name = "Chaldal"
     base_url = "https://chaldal.com"
 
-    # Category-slug targets. Verified live: `/oil`, `/rice`, `/sugar`, `/egg`,
-    # `/milk`, `/dal-pulses`, `/atta-flour`, `/soap`, `/laundry-detergent`.
+    # Category-ID targets. Mapped from route paths to active category IDs
+    # verified against the live client state.
     category_targets = {
-        "cooking_oil": ["/oil"],
-        "rice":        ["/rices"],
-        "sugar":       ["/salt-sugar"],
-        "eggs":        ["/eggs"],
-        "milk":        ["/fresh-milk"],
-        "lentils":     ["/dal-or-lentil"],
-        "flour":       ["/flour"],
-        "soap":        ["/soaps", "/womens-soaps"],
-        "detergent":   ["/laundry"],
+        "cooking_oil": ["108"],
+        "rice":        ["80"],
+        "sugar":       ["111"],
+        "eggs":        ["61"],
+        "milk":        ["1380"],
+        "lentils":     ["198"],
+        "flour":       ["103"],
+        "soap":        ["1620", "1608"],
+        "detergent":   ["86"],
         # Backfilled categories:
-        "spices":      ["/spices"],
-        "salt":        ["/salt-sugar"],
-        "garam_masala":["/spices"],
-        "molasses":    ["/honey"],
-        "biscuits":    ["/plain-biscuits", "/cream-biscuits", "/toast-biscuits"],
-        "noodles":     ["/noodles"],
-        "tea":         ["/tea-coffee-2"],
-        "powdered_milk":["/powder-milk"],
+        "spices":      ["107"],
+        "salt":        ["111"],
+        "garam_masala":["107"],
+        "molasses":    ["77"],
+        "biscuits":    ["1619", "1621", "1625"],
+        "noodles":     ["93"],
+        "tea":         ["1597"],
+        "powdered_milk":["1580"],
     }
 
-    PER_CATEGORY_CAP = 200
-    SCROLL_PASSES = 12
-
     async def scrape_category(self, page, category: str, target: str) -> AsyncIterator[RawListing]:
-        url = self.base_url + target
-        await self._with_retry(lambda: page.goto(url, wait_until="domcontentloaded"), f"goto {url}")
+        url = "https://catalog.chaldal.com/searchPersonalized"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        page_index = 0
+        async with httpx.AsyncClient() as client:
+            while True:
+                logger.info("[chaldal] fetching category %s (ID %s) page %d", category, target, page_index)
+                
+                payload = {
+                    "apiKey": "e964fc2d51064efa97e94db7c64bf3d044279d4ed0ad4bdd9dce89fecc9156f0",
+                    "storeId": 1,
+                    "warehouseId": 8, # Default main warehouse for Dhaka
+                    "pageSize": 100,
+                    "currentPageIndex": page_index,
+                    "metropolitanAreaId": 1,
+                    "query": "",
+                    "productVariantId": -1,
+                    "bundleId": {"case":"None"},
+                    "canSeeOutOfStock": "true", # Retrieve both in-stock and out-of-stock items
+                    "filters": ["recursiveCategories=" + target],
+                    "maxOutOfStockCount": {"case":"Some","fields":[100]},
+                    "shouldShowAlternateProductsForAllOutOfStock": {"case":"Some","fields":["true"]},
+                    "customerGuid": {"case":"None"},
+                    "deliveryAreaId": {"case":"None"},
+                    "shouldShowCategoryBasedRecommendations": {"case":"None"}
+                }
+                
+                try:
+                    res = await client.post(url, json=payload, headers=headers, timeout=20.0)
+                    if res.status_code != 200:
+                        logger.warning("[chaldal] API query returned status %d for category ID %s page %d", res.status_code, target, page_index)
+                        break
+                    data = res.json()
+                except Exception as exc:
+                    logger.warning("[chaldal] API query failed for category ID %s page %d: %s", target, page_index, exc)
+                    break
+                    
+                hits = data.get("hits", [])
+                hits_per_page = data.get("hitsPerPage", 100)
+                
+                if not hits:
+                    break
+                    
+                for h in hits:
+                    listing = self._extract_api_hit(h)
+                    if listing:
+                        yield listing
+                        
+                # Stop if we received fewer hits than the page size (reached the end)
+                # or if we exceed 3 pages (cap at 300 products per target ID to prevent runaways)
+                if len(hits) < hits_per_page or page_index >= 2:
+                    break
+                page_index += 1
+
+    def _extract_api_hit(self, h: dict) -> RawListing | None:
         try:
-            await page.wait_for_selector(CARD_SEL, timeout=12_000)
-        except Exception:
-            logger.warning("[chaldal] %s: no cards rendered (selector %r)", url, CARD_SEL)
-            return
-
-        # Scroll to load all cards first
-        last_count = -1
-        for _ in range(self.SCROLL_PASSES):
-            cards = await page.query_selector_all(CARD_SEL)
-            if len(cards) == last_count:
-                break
-            last_count = len(cards)
-            await page.mouse.wheel(0, 8000)
-            await page.wait_for_timeout(1000)
-
-        # Extract all cards in a single DOM evaluation round-trip
-        try:
-            card_data = await page.evaluate(
-                r"""() => {
-                    const cards = Array.from(document.querySelectorAll('div.productV2Catalog'));
-                    return cards.map(card => {
-                        const inner = card.innerText ? card.innerText.trim() : '';
-                        const img = card.querySelector('img');
-                        const img_src = img ? img.getAttribute('src') : null;
-                        return { inner, img_src };
-                    });
-                }"""
-            )
-        except Exception as exc:
-            logger.warning("[chaldal] DOM evaluation failed for %s: %s", url, exc)
-            return
-
-        seen_slugs: set[str] = set()
-        for item in card_data[: self.PER_CATEGORY_CAP]:
-            listing = self._extract_card_data(item)
-            if listing is None or listing.store_product_id in seen_slugs:
-                continue
-            seen_slugs.add(listing.store_product_id)
-            yield listing
-
-    def _extract_card_data(self, item: dict) -> RawListing | None:
-        try:
-            inner = item["inner"].strip()
-            img_src = item["img_src"]
-            if not inner or not img_src:
+            slug = h.get("slug")
+            name = h.get("name")
+            price = h.get("price")
+            
+            if not slug or not name or price is None:
                 return None
-
-            price_match = _PRICE_RE.search(inner)
-            if not price_match:
-                return None
-            price = float(price_match.group(1))
-
-            slug_match = _SLUG_FROM_IMG.search(img_src)
-            if not slug_match:
-                return None
-            slug = slug_match.group(1)
+                
+            price = float(price)
             url = f"{self.base_url}/{slug}"
             sku = f"chaldal:{slug}"
-
-            # Name = everything except the price token and the trailing delivery suffix.
-            name_part = inner[price_match.end():].strip()
-            name_part = _DELIVERY_RE.sub("", name_part).strip()
-            lines = [ln.strip() for ln in name_part.splitlines() if ln.strip()]
-            # Drop any "Save ৳ X" badge line.
-            lines = [ln for ln in lines if not ln.lower().startswith("save ৳") and not ln.lower().startswith("save tk")]
-            name = " ".join(lines) if lines else name_part
-
-            in_stock = OUT_OF_STOCK_TEXT not in inner.lower()
-
+            
+            # Stock status based on availability lists per warehouse
+            avail = h.get("productAvailabilityForSelectedWarehouse", [])
+            in_stock = len(avail) > 0
+            
+            # Image URL extraction
+            images = h.get("picturesUrls", [])
+            image_url = images[0] if images else None
+            
             return RawListing(
                 store_product_id=sku,
                 name=name,
                 price=price,
                 url=url,
-                image_url=img_src,
+                image_url=image_url,
                 in_stock=in_stock,
             )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("[chaldal] card extract failed: %s", exc)
+        except Exception as exc:
+            logger.debug("[chaldal] API hit extraction failed: %s", exc)
             return None

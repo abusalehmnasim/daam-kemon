@@ -86,10 +86,12 @@ async def search(
 
     if effective_category and np.base_unit_qty is not None:
         target = float(np.base_unit_qty)
+        low = target * 0.90
+        high = target * 1.10
         stmt = (
             select(Product)
             .where(Product.category == effective_category)
-            .where(Product.base_unit_qty.is_not(None))
+            .where(Product.base_unit_qty.between(low, high))
             .order_by(func.abs(Product.base_unit_qty - target), Product.name)
             .limit(limit)
         )
@@ -170,7 +172,16 @@ def _brand_hint_from_name(store_product_name: str) -> str | None:
     return out[0] if out else None
 
 
-def _aggregate_groups(canonical: list[ProductGroupOut]) -> list[AggregatedGroup]:
+def get_base_unit_qty(size_value: float | None, size_unit: str | None) -> float | None:
+    if size_value is None:
+        return None
+    unit = (size_unit or "").upper()
+    if unit in ("L", "KG"):
+        return size_value * 1000.0
+    return size_value
+
+
+def _aggregate_groups(canonical: list[ProductGroupOut], target_qty: float | None = None) -> list[AggregatedGroup]:
     """Collapse per-brand canonical groups into shopping buckets.
 
     Two products go into the same bucket iff they share
@@ -227,9 +238,18 @@ def _aggregate_groups(canonical: list[ProductGroupOut]) -> list[AggregatedGroup]
             bucket.cheapest_brand = (cheapest.brand or "—").title()
             bucket.cheapest_store = cheapest.store_display_name
         out.append(bucket)
-    # Sort buckets by size ascending (closest to the user's parsed size already
-    # comes first thanks to the SQL ORDER BY in search()), then by display name.
-    out.sort(key=lambda b: (b.size_value or 0, b.display_name))
+    # Sort buckets: if target size is given, sort by closeness to target.
+    # Otherwise, sort by size ascending.
+    if target_qty is not None:
+        def sort_key(b: AggregatedGroup):
+            qty = get_base_unit_qty(b.size_value, b.size_unit)
+            diff = abs(qty - target_qty) if qty is not None else float("inf")
+            return (diff, b.size_value or 0, b.display_name)
+    else:
+        def sort_key(b: AggregatedGroup):
+            return (b.size_value or 0, b.display_name)
+
+    out.sort(key=sort_key)
     return out
 
 
@@ -265,5 +285,8 @@ async def aggregated_search(
         category_filter=category_filter,
         subcategory_filter=subcategory_filter,
     )
-    groups = _aggregate_groups(canonical)
+    from ..core.normalizer import normalize
+    np = normalize(query)
+    target_qty = np.base_unit_qty
+    groups = _aggregate_groups(canonical, target_qty)
     return groups, canonical, category, size
