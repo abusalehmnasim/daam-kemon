@@ -2,6 +2,7 @@ from .chaldal import ChaldalScraper
 from .shwapno import ShwapnoScraper
 from .othoba import OthobaScraper
 from .unimart import UnimartScraper
+from .daraz import DarazScraper
 
 # Pandamart (Foodpanda grocery) was removed in favour of Othoba: Foodpanda
 # gates listings by a delivery-location cookie and aggressively blocks
@@ -11,6 +12,7 @@ SCRAPERS = {
     "shwapno": ShwapnoScraper,
     "othoba":  OthobaScraper,
     "unimart": UnimartScraper,
+    "daraz":   DarazScraper,
 }
 
-__all__ = ["ChaldalScraper", "ShwapnoScraper", "OthobaScraper", "UnimartScraper", "SCRAPERS"]
+__all__ = ["ChaldalScraper", "ShwapnoScraper", "OthobaScraper", "UnimartScraper", "DarazScraper", "SCRAPERS"]

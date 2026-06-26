@@ -48,6 +48,15 @@ STORES = [
         "delivery_config": {"flat": 80},
         "affiliate_config": {},
     },
+    {
+        "name": "daraz",
+        "display_name": "Daraz",
+        "base_url": "https://www.daraz.com.bd",
+        # Daraz delivery is per-seller and promo-heavy; flat 60 is a rough
+        # placeholder for the basket optimizer until per-seller fees are modelled.
+        "delivery_config": {"flat": 60},
+        "affiliate_config": {},
+    },
 ]
 
 
