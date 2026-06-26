@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import socket
 import sys
 from dotenv import load_dotenv
 
@@ -20,12 +21,44 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
+def fatal_db_hint(exc: Exception) -> str | None:
+    """Return a human explanation if `exc` is a DB error that retrying won't fix.
+
+    Transient errors (the DB is still booting, a brief network blip) are worth
+    retrying. DNS failures, a paused project, or bad credentials are not — they
+    need a config change, so we should fail fast instead of looping 20 times.
+    """
+    msg = str(exc).lower()
+
+    if isinstance(exc, socket.gaierror) or any(
+        s in msg for s in ("enotfound", "getaddrinfo", "name or service not known",
+                            "could not translate host name", "nodename nor servname")
+    ):
+        return ("Could not resolve the database host (DNS lookup failed). Verify the "
+                "host in DATABASE_URL is correct and the database is provisioned.")
+
+    if "tenant" in msg and "not found" in msg:
+        return ("The pooler reports the tenant/user was not found. On Supabase free tier "
+                "this almost always means the PROJECT IS PAUSED — resume it in the Supabase "
+                "dashboard, then redeploy. Otherwise double-check DATABASE_URL.")
+
+    if "password authentication failed" in msg:
+        return "Password authentication failed — check the credentials in DATABASE_URL."
+
+    return None
+
+
 def get_db_url() -> str:
     url = os.getenv("DATABASE_URL")
     if not url:
         logger.error("DATABASE_URL environment variable is not set")
         sys.exit(1)
-    
+
+    # Strip stray whitespace/newlines — a trailing newline pasted into the env
+    # var ends up inside the database name (e.g. "postgres\n") and the connection
+    # is rejected with InvalidCatalogNameError.
+    url = url.strip()
+
     # Rewrite sync to async connection strings for SQLAlchemy + asyncpg
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
@@ -71,6 +104,14 @@ async def run_migrations() -> None:
                 logger.info("Migrations completed successfully")
                 break
             except Exception as e:
+                hint = fatal_db_hint(e)
+                if hint:
+                    logger.error(
+                        "Database is unreachable and retrying will not help.\n"
+                        "  -> %s\n  Underlying error: %s",
+                        hint, e,
+                    )
+                    sys.exit(1)
                 logger.warning(f"Database connection attempt {attempt}/{max_retries} failed: {e}")
                 if attempt == max_retries:
                     logger.exception("Migration failed after maximum retries:")

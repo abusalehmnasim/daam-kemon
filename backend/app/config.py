@@ -11,7 +11,7 @@ class Settings:
         url = os.getenv(
             "DATABASE_URL",
             "postgresql+asyncpg://daamkemon:daamkemon@localhost:5432/daamkemon",
-        )
+        ).strip()  # trailing newline in the env var would corrupt the db name
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
