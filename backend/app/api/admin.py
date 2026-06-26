@@ -1,8 +1,9 @@
 """
 Admin endpoints — read-only views into operational state.
 
-No auth on these for MVP; in production you'd put them behind a token. They're
-under /admin so they're trivially blockable at the gateway.
+Guarded by a shared secret: every route here requires a valid X-Admin-Key
+header (see app/security.require_admin). Set ADMIN_API_KEY in the environment
+to enable enforcement; in production an unset key fails closed.
 """
 
 from __future__ import annotations
@@ -17,8 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..models import ScrapeRun, StoreProduct
+from ..security import require_admin
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
 
 class ScrapeRunOut(BaseModel):

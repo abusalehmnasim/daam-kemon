@@ -113,8 +113,6 @@ def test_healthz(client):
         "/search?limit=201",     # above le=200
         "/products?limit=0",     # below ge=1
         "/products/abc",         # path param must be int
-        "/admin/scrape_runs?limit=0",
-        "/admin/scrape_runs?limit=999",
         "/click/abc",            # path param must be int
     ],
 )
@@ -241,10 +239,44 @@ def test_list_categories(client):
     assert first_group["categories"][0]["product_count"] == 0
 
 
-def test_admin_scrape_runs_empty(client):
+def test_admin_open_in_dev_without_key(client, monkeypatch):
+    # No ADMIN_API_KEY configured + development env => admin routes are open.
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.delenv("ADMIN_API_KEY", raising=False)
     res = client.get("/admin/scrape_runs")
     assert res.status_code == 200
     assert res.json() == []
+
+
+def test_admin_fails_closed_in_production_without_key(client, monkeypatch):
+    # Forgetting to set the key in production must not expose admin data.
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("ADMIN_API_KEY", raising=False)
+    assert client.get("/admin/scrape_runs").status_code == 503
+
+
+def test_admin_requires_key_when_configured(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "s3cret")
+
+    # Missing header => 401
+    assert client.get("/admin/scrape_runs").status_code == 401
+    # Wrong key => 401
+    assert client.get(
+        "/admin/scrape_runs", headers={"X-Admin-Key": "wrong"}
+    ).status_code == 401
+    # Correct key => 200
+    res = client.get("/admin/scrape_runs", headers={"X-Admin-Key": "s3cret"})
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_admin_freshness_also_guarded(client, monkeypatch):
+    # The guard is router-level, so every admin route is covered, not just one.
+    monkeypatch.setenv("ADMIN_API_KEY", "s3cret")
+    assert client.get("/admin/freshness").status_code == 401
+    assert client.get(
+        "/admin/freshness", headers={"X-Admin-Key": "s3cret"}
+    ).status_code == 200
 
 
 def test_search_endpoint(client, monkeypatch):

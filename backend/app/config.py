@@ -18,9 +18,21 @@ class Settings:
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
 
+    @property
+    def admin_api_key(self) -> str:
+        """Token required by /admin/* endpoints (via the X-Admin-Key header).
+
+        Read live (not cached at import) so tests and deploys can set it
+        through the environment. Empty string means "unset"."""
+        return os.getenv("ADMIN_API_KEY", "")
+
+    @property
+    def environment(self) -> str:
+        # Read live so tests / deploys can set it via the environment.
+        return os.getenv("ENVIRONMENT", "development")
+
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     cors_origins: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-    environment: str = os.getenv("ENVIRONMENT", "development")
     # If True, the search service will live-match scraped names against canonical
     # products. False (default) trusts the matcher run at ingest time.
     live_match: bool = os.getenv("LIVE_MATCH", "false").lower() == "true"
