@@ -1,9 +1,6 @@
-databases:
-  - name: daamkemon-db
-    databaseName: daamkemon
-    user: daamkemon
-    plan: free
-
+# Note: DATABASE_URL is intentionally NOT managed by this blueprint. It is set
+# manually in the Render dashboard (Environment tab) to the Supabase connection
+# string, so a blueprint sync can never overwrite it with a different database.
 services:
   - type: redis
     name: daamkemon-redis
@@ -18,9 +15,7 @@ services:
     dockerContext: backend
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: daamkemon-db
-          property: connectionString
+        sync: false # set in the dashboard to the Supabase connection string
       - key: REDIS_URL
         fromService:
           type: redis
@@ -30,3 +25,5 @@ services:
         value: production
       - key: ENABLE_SCHEDULER
         value: "false"
+      - key: ADMIN_API_KEY
+        sync: false # set in the dashboard to a strong secret
