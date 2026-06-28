@@ -22,4 +22,9 @@ RUN python -m playwright install chromium
 COPY . .
 
 EXPOSE 8000
-CMD python migrate.py && uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Start the web server directly. Migrations must NOT run here: this command runs
+# on every cold-start wake (not just on deploy), and concurrent wakes would each
+# re-run the full DDL migration and deadlock each other on table locks, leaving
+# the API permanently unable to start. Run migrations as a deliberate step
+# instead (Render Pre-Deploy/Shell, Heroku release phase, or `python migrate.py`).
+CMD uvicorn app.main:app --host 0.0.0.0 --port 8000
