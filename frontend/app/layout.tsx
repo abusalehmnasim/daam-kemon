@@ -4,7 +4,8 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Daam Kemon — Grocery price intelligence for Bangladesh",
-  description: "Compare grocery and daily essential prices across Chaldal, Shwapno, Othoba and Unimart.",
+  description:
+    "Compare grocery and daily essential prices across Chaldal, Shwapno, Othoba and Unimart.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +18,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Daam Kemon
             </Link>
             <nav className="flex gap-4 text-sm">
-              <Link href="/" className="hover:underline">Search</Link>
-              <Link href="/categories" className="hover:underline">Categories</Link>
-              <Link href="/basket" className="hover:underline">Basket</Link>
+              <Link href="/" className="hover:underline">
+                Search
+              </Link>
+              <Link href="/categories" className="hover:underline">
+                Categories
+              </Link>
+              <Link href="/basket" className="hover:underline">
+                Basket
+              </Link>
             </nav>
           </div>
         </header>

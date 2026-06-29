@@ -11,6 +11,7 @@ import logging
 import os
 import socket
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,15 +70,15 @@ def get_db_url() -> str:
 
 async def run_migrations() -> None:
     db_url = get_db_url()
-    
+
     # Locate initial migrations sql file
     script_dir = os.path.dirname(os.path.abspath(__file__))
     sql_path = os.path.join(script_dir, "migrations", "001_initial.sql")
-    
+
     if not os.path.exists(sql_path):
         logger.error(f"Migration script not found at: {sql_path}")
         sys.exit(1)
-        
+
     logger.info(f"Reading migrations from: {sql_path}")
     with open(sql_path, "r", encoding="utf-8") as f:
         sql_content = f.read()
@@ -85,12 +86,12 @@ async def run_migrations() -> None:
     # Create async engine and execute SQL statements
     logger.info("Connecting to the database...")
     engine = create_async_engine(db_url, future=True)
-    
+
     try:
         max_retries = 20
         retry_delay = 3
         connected = False
-        
+
         for attempt in range(1, max_retries + 1):
             try:
                 async with engine.begin() as conn:
@@ -117,20 +118,20 @@ async def run_migrations() -> None:
                     logger.exception("Migration failed after maximum retries:")
                     sys.exit(1)
                 await asyncio.sleep(retry_delay)
-                
+
         if connected:
             # Run seeding automatically
             logger.info("Running database seeding...")
             try:
-                from seed.seed_data import seed
                 from app.database import dispose as dispose_db
+                from seed.seed_data import seed
                 await seed()
                 await dispose_db()
                 logger.info("Seeding completed successfully")
             except Exception as seed_err:
                 logger.error(f"Seeding failed: {seed_err}")
                 # Do not fail the whole migration if just seeding fails, but log it
-    except Exception as e:
+    except Exception:
         logger.exception("Migration failed:")
         sys.exit(1)
     finally:

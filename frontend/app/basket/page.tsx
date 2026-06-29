@@ -49,11 +49,17 @@ export default function BasketPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { setEntries(load()); }, []);
+  useEffect(() => {
+    setEntries(load());
+  }, []);
 
   const refreshOptimize = async (next: BasketEntry[]) => {
-    if (next.length === 0) { setResult(null); return; }
-    setLoading(true); setError(null);
+    if (next.length === 0) {
+      setResult(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
     try {
       const res = await api.optimize(toApi(next));
       setResult(res);
@@ -64,7 +70,9 @@ export default function BasketPage() {
     }
   };
 
-  useEffect(() => { void refreshOptimize(entries); }, [entries]);
+  useEffect(() => {
+    void refreshOptimize(entries);
+  }, [entries]);
 
   if (entries.length === 0) {
     return (
@@ -93,7 +101,9 @@ export default function BasketPage() {
                 type="number"
                 min={1}
                 value={e.quantity}
-                onChange={(ev) => setEntries(setQuantity(e.id, Math.max(1, Number(ev.target.value) || 1)))}
+                onChange={(ev) =>
+                  setEntries(setQuantity(e.id, Math.max(1, Number(ev.target.value) || 1)))
+                }
                 className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
               />
               <button
@@ -129,7 +139,9 @@ export default function BasketPage() {
             Smart split — saves <span className="text-brand">{fmt(result.split_savings)}</span>
           </h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {result.split.map((p) => <PlanCard key={p.store} plan={p} />)}
+            {result.split.map((p) => (
+              <PlanCard key={p.store} plan={p} />
+            ))}
           </div>
         </section>
       )}
@@ -138,7 +150,9 @@ export default function BasketPage() {
         <section className="space-y-3">
           <h2 className="font-semibold text-lg">All stores compared</h2>
           <div className="grid sm:grid-cols-3 gap-3">
-            {result.all_single_store.map((p) => <PlanCard key={p.store} plan={p} />)}
+            {result.all_single_store.map((p) => (
+              <PlanCard key={p.store} plan={p} />
+            ))}
           </div>
         </section>
       )}

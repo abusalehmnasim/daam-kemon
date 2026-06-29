@@ -5,10 +5,10 @@ import type { BasketItemIn } from "@/types";
 const KEY = "daamkemon.basket.v1";
 
 export interface BasketEntry {
-  id: string;       // local UID, stable across reorders
+  id: string; // local UID, stable across reorders
   productId?: number;
   query?: string;
-  label: string;    // what we render in the basket list
+  label: string; // what we render in the basket list
   quantity: number;
 }
 

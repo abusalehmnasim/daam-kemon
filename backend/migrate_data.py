@@ -11,9 +11,10 @@ import asyncio
 import logging
 import os
 import sys
+
 from dotenv import load_dotenv
+from sqlalchemy import MetaData, Table, text
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import text, MetaData, Table
 
 # Load environment variables
 load_dotenv()
@@ -45,12 +46,12 @@ def clean_url(url: str | None) -> str:
 
 async def migrate_table(source_conn, target_conn, metadata, table_name: str):
     logger.info(f"Migrating table '{table_name}'...")
-    
+
     # 1. Fetch data from source
     source_result = await source_conn.execute(text(f"SELECT * FROM {table_name}"))
     columns = source_result.keys()
-    rows = [dict(zip(columns, row)) for row in source_result.fetchall()]
-    
+    rows = [dict(zip(columns, row, strict=True)) for row in source_result.fetchall()]
+
     if not rows:
         logger.info(f"Table '{table_name}' is empty. Skipping.")
         return
@@ -68,7 +69,7 @@ async def migrate_table(source_conn, target_conn, metadata, table_name: str):
     for i in range(0, len(rows), chunk_size):
         chunk = rows[i:i + chunk_size]
         await target_conn.execute(table_obj.insert(), chunk)
-    
+
     logger.info(f"Successfully inserted {len(rows)} rows into target table '{table_name}'")
 
     # 5. Reset primary key sequence if table has a serial/bigserial id column
@@ -110,11 +111,11 @@ async def main():
             logger.info("Reflecting target database schema...")
             await target_conn.run_sync(metadata.reflect)
             logger.info("Schema reflected successfully.")
-            
+
             for table in TABLES:
                 await migrate_table(source_conn, target_conn, metadata, table)
             logger.info("All tables migrated successfully!")
-    except Exception as e:
+    except Exception:
         logger.exception("Migration failed:")
         sys.exit(1)
     finally:

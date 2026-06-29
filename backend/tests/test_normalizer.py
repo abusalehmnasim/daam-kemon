@@ -54,3 +54,20 @@ def test_brand_stripped_from_normalized_name():
     n = normalize("Rupchanda Soyabean Oil 5L")
     assert "rupchanda" not in n.normalized_name
     assert "soyabean" in n.normalized_name or "oil" in n.normalized_name
+
+
+def test_brand_not_matched_inside_other_word():
+    # "rin" is a detergent brand but must NOT be extracted from "spring".
+    # (Substring matching used to return "rin" here.)
+    n = normalize("Spring Clean Detergent Powder 1kg")
+    assert n.category == "detergent"
+    assert n.brand != "rin"
+    assert n.brand is None
+
+
+def test_product_type_word_is_not_a_brand():
+    # "Sunflower Oil" has no real brand — we must not invent one.
+    n = normalize("Sunflower Oil Deshi 1 Litre")
+    assert n.category == "cooking_oil"
+    assert n.subcategory == "sunflower"
+    assert n.brand is None

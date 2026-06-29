@@ -13,7 +13,6 @@ from ..models import Product, Store, StoreProduct
 from ..schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
 from ..schemas.search import AggregatedGroup, AggregatedOffering
 
-
 # Trigram similarity threshold for "fuzzy text matches the user's query"
 TRGM_THRESHOLD = 0.15
 

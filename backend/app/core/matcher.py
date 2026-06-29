@@ -24,7 +24,6 @@ from typing import Optional, Sequence
 
 from .normalizer import NormalizedProduct
 
-
 # Tolerance for "same size" — store sizes are typically exact, but allow 2%
 # slop for human-reported weights (e.g. rice 1000g vs 998g).
 SIZE_TOLERANCE = 0.02

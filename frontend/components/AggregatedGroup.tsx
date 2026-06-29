@@ -16,8 +16,8 @@ function ConfidenceBadge({ confidence }: { confidence: number | null }) {
     confidence >= 0.85
       ? { label: "brand match", cls: "bg-blue-100 text-blue-800" }
       : confidence >= 0.7
-      ? { label: "category match", cls: "bg-amber-100 text-amber-800" }
-      : { label: "approximate", cls: "bg-gray-100 text-gray-700" };
+        ? { label: "category match", cls: "bg-amber-100 text-amber-800" }
+        : { label: "approximate", cls: "bg-gray-100 text-gray-700" };
   return (
     <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded ${tier.cls}`}>
       {tier.label}
@@ -86,12 +86,13 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         {byBrand.map(({ brand, list }) => (
           <div key={brand} className="px-4 py-2.5">
             <div className="text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-2">
-              <span className="capitalize">{brand === "_unbranded" ? "Unbranded / loose" : brand}</span>
+              <span className="capitalize">
+                {brand === "_unbranded" ? "Unbranded / loose" : brand}
+              </span>
             </div>
             <ul className="space-y-1.5">
               {list.map((o) => {
-                const isCheapest =
-                  o.in_stock && o.price === group.cheapest_price;
+                const isCheapest = o.in_stock && o.price === group.cheapest_price;
                 return (
                   <li
                     key={o.store_product_id}
@@ -114,9 +115,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                         <span className="text-xs text-red-600">Out of stock</span>
                       ) : (
                         <span
-                          className={`text-base font-semibold ${
-                            isCheapest ? "text-brand" : ""
-                          }`}
+                          className={`text-base font-semibold ${isCheapest ? "text-brand" : ""}`}
                         >
                           {fmt(o.price)}
                         </span>

@@ -98,19 +98,19 @@ class ShwapnoScraper(StoreScraper):
                     const cards = Array.from(document.querySelectorAll(cardSel));
                     return cards.map(card => {
                         const inner = card.innerText ? card.innerText.trim() : '';
-                        
+
                         const linkEl = card.querySelector(linkSel);
                         const href = linkEl ? linkEl.getAttribute('href') : null;
-                        
+
                         const priceEl = card.querySelector(priceSel);
                         const priceText = priceEl ? priceEl.innerText : null;
-                        
+
                         const nameEl = card.querySelector(nameSel);
                         const nameText = nameEl ? nameEl.innerText : null;
-                        
+
                         const imgEl = card.querySelector(imgSel);
                         const img_src = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src')) : null;
-                        
+
                         return { inner, href, priceText, nameText, img_src };
                     });
                 }""",

@@ -140,7 +140,7 @@ async def main_async() -> None:
 
 async def _kick_initial_run() -> None:
     await asyncio.sleep(5)  # let the DB finish coming up if we started in parallel
-    
+
     # Smart throttle check: don't run if we had a successful scrape recently
     try:
         async with session_scope() as session:
@@ -149,14 +149,14 @@ async def _kick_initial_run() -> None:
                 text("SELECT MAX(finished_at) FROM scrape_runs WHERE status = 'success'")
             )
             last_finished = result.scalar()
-            
+
         if last_finished:
             # Ensure it is timezone-aware
             if last_finished.tzinfo is None:
                 last_finished = last_finished.replace(tzinfo=timezone.utc)
             else:
                 last_finished = last_finished.astimezone(timezone.utc)
-                
+
             elapsed = datetime.now(timezone.utc) - last_finished
             interval = timedelta(hours=SCRAPE_INTERVAL_HOURS)
             if elapsed < interval:

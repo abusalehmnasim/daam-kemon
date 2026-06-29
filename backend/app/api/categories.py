@@ -3,14 +3,12 @@ endpoint backed by store_products."""
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.categories import CATEGORIES, categories_grouped
+from ..core.categories import categories_grouped
 from ..database import get_session
 from ..models import Product, StoreProduct
 

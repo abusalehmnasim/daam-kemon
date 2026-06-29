@@ -1,6 +1,6 @@
-from .product import ProductOut, StoreOfferingOut, ProductGroupOut
-from .search import SearchResponse
 from .basket import BasketItemIn, BasketOptimizeRequest, BasketOptimizeResponse
+from .product import ProductGroupOut, ProductOut, StoreOfferingOut
+from .search import SearchResponse
 
 __all__ = [
     "ProductOut",

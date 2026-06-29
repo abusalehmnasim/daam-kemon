@@ -1,6 +1,5 @@
 from app.core.basket_optimizer import BasketItem, Offering, optimize
 
-
 FEES = {
     "chaldal":   {"tiers": [{"min": 0, "fee": 80}, {"min": 1500, "fee": 0}]},
     "shwapno":   {"tiers": [{"min": 0, "fee": 70}, {"min": 2000, "fee": 0}]},

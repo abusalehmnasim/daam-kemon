@@ -27,7 +27,6 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.matcher import CandidateProduct, match
 from app.core.normalizer import normalize
@@ -251,7 +250,7 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
                             err_msg = str(per_item_exc).lower()
                             if any(k in err_msg for k in ("connection", "closed", "disconnect", "shutdown")):
                                 is_conn_err = True
-                    
+
                     if is_conn_err or not session.is_active:
                         logger.warning("[%s] Database transaction is invalid or connection lost. Resetting session...", scraper.store_name)
                         try:

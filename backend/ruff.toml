@@ -1,0 +1,17 @@
+# Ruff config for the backend. Run: `ruff check .`
+target-version = "py311"
+line-length = 100
+extend-exclude = [".venv", "migrations"]
+
+[lint]
+# Pragmatic set: pyflakes (F), pycodestyle errors/warnings (E/W), import
+# sorting (I), and a slice of bugbear (B) for real footguns.
+select = ["E", "F", "I", "W", "B"]
+ignore = [
+    "E501",  # line length is stylistic here; not worth churning ~160 lines
+    "B008",  # function call in default arg — this IS the FastAPI Depends()/Query() pattern
+]
+
+[lint.per-file-ignores]
+# load_dotenv() must run before the engine import, so that import is below it.
+"migrate.py" = ["E402"]

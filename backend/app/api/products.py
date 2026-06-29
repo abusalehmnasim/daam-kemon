@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models import Product, Store
-from ..schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
+from ..models import Product
+from ..schemas.product import ProductGroupOut, ProductOut
 from ..services.search_service import _build_group, _store_display_map
 
 router = APIRouter(prefix="/products", tags=["products"])

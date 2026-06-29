@@ -10,7 +10,10 @@ export default function CategoriesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.categories().then(setTree).catch((e) => setError(String(e)));
+    api
+      .categories()
+      .then(setTree)
+      .catch((e) => setError(String(e)));
   }, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -44,7 +47,9 @@ export default function CategoriesPage() {
 function CategoryCard({ c }: { c: CategoryGroupOut["categories"][number] }) {
   const empty = c.listing_count === 0;
   return (
-    <div className={`bg-white border rounded-xl p-3 ${empty ? "border-gray-200 opacity-60" : "border-gray-200"}`}>
+    <div
+      className={`bg-white border rounded-xl p-3 ${empty ? "border-gray-200 opacity-60" : "border-gray-200"}`}
+    >
       <Link
         href={`/search?category=${encodeURIComponent(c.key)}`}
         className="block font-semibold text-sm hover:text-brand"

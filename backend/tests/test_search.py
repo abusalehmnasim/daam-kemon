@@ -1,5 +1,5 @@
-from app.services.search_service import _aggregate_groups, get_base_unit_qty
 from app.schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
+from app.services.search_service import _aggregate_groups, _brand_hint_from_name, get_base_unit_qty
 
 
 def _make_mock_group(prod_id: int, name: str, size_value: float, size_unit: str, category: str = "cooking_oil") -> ProductGroupOut:
@@ -27,6 +27,16 @@ def _make_mock_group(prod_id: int, name: str, size_value: float, size_unit: str,
         cheapest_price=100.0 * size_value,
         cheapest_store="Chaldal",
     )
+
+
+def test_brand_hint_only_returns_known_brands():
+    # Product-type words and noise must NOT be surfaced as brands.
+    assert _brand_hint_from_name("Sunflower Oil Deshi - 1 Litre", "cooking_oil") is None
+    assert _brand_hint_from_name("EC Organic Sunflower oil 1 Liter Pet Bottle", "cooking_oil") is None
+    # A real, known brand IS surfaced.
+    assert _brand_hint_from_name("Rupchanda Soyabean Oil 5L", "cooking_oil") == "rupchanda"
+    # Empty/None name is safe.
+    assert _brand_hint_from_name("", "cooking_oil") is None
 
 
 def test_get_base_unit_qty():

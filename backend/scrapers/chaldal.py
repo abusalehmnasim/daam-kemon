@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from typing import AsyncIterator
+
 import httpx
 
 from .base import RawListing, StoreScraper
@@ -61,12 +62,12 @@ class ChaldalScraper(StoreScraper):
             "Accept": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        
+
         page_index = 0
         async with httpx.AsyncClient() as client:
             while True:
                 logger.info("[chaldal] fetching category %s (ID %s) page %d", category, target, page_index)
-                
+
                 payload = {
                     "apiKey": "e964fc2d51064efa97e94db7c64bf3d044279d4ed0ad4bdd9dce89fecc9156f0",
                     "storeId": 1,
@@ -85,7 +86,7 @@ class ChaldalScraper(StoreScraper):
                     "deliveryAreaId": {"case":"None"},
                     "shouldShowCategoryBasedRecommendations": {"case":"None"}
                 }
-                
+
                 try:
                     res = await client.post(url, json=payload, headers=headers, timeout=20.0)
                     if res.status_code != 200:
@@ -95,18 +96,18 @@ class ChaldalScraper(StoreScraper):
                 except Exception as exc:
                     logger.warning("[chaldal] API query failed for category ID %s page %d: %s", target, page_index, exc)
                     break
-                    
+
                 hits = data.get("hits", [])
                 hits_per_page = data.get("hitsPerPage", 100)
-                
+
                 if not hits:
                     break
-                    
+
                 for h in hits:
                     listing = self._extract_api_hit(h)
                     if listing:
                         yield listing
-                        
+
                 # Stop if we received fewer hits than the page size (reached the end)
                 # or if we exceed 3 pages (cap at 300 products per target ID to prevent runaways)
                 if len(hits) < hits_per_page or page_index >= 2:
@@ -118,22 +119,22 @@ class ChaldalScraper(StoreScraper):
             slug = h.get("slug")
             name = h.get("name")
             price = h.get("price")
-            
+
             if not slug or not name or price is None:
                 return None
-                
+
             price = float(price)
             url = f"{self.base_url}/{slug}"
             sku = f"chaldal:{slug}"
-            
+
             # Stock status based on availability lists per warehouse
             avail = h.get("productAvailabilityForSelectedWarehouse", [])
             in_stock = len(avail) > 0
-            
+
             # Image URL extraction
             images = h.get("picturesUrls", [])
             image_url = images[0] if images else None
-            
+
             return RawListing(
                 store_product_id=sku,
                 name=name,

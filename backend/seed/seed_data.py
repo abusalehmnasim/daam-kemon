@@ -10,11 +10,10 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.database import session_scope
-from app.models import Product, Store, StoreProduct
+from app.models import Store
 
 logger = logging.getLogger(__name__)
 

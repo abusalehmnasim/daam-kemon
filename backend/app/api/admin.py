@@ -74,8 +74,9 @@ class StoreFreshnessOut(BaseModel):
 @router.get("/freshness", response_model=list[StoreFreshnessOut])
 async def freshness(session: AsyncSession = Depends(get_session)) -> list[StoreFreshnessOut]:
     """Per-store freshness summary. Tells you at a glance whether scrapers are running."""
-    from sqlalchemy import func, case
     from datetime import timedelta, timezone
+
+    from sqlalchemy import case, func
 
     now = datetime.now(timezone.utc)
     d1 = now - timedelta(days=1)

@@ -55,7 +55,7 @@ async def _startup() -> None:
             try:
                 from scrapers.scheduler import start_scheduler_in_background
                 start_scheduler_in_background()
-            except Exception as e:
+            except Exception:
                 logging.exception("Failed to start scheduler on API startup:")
         else:
             logging.info("Background scraper scheduler is disabled (ENABLE_SCHEDULER=false)")

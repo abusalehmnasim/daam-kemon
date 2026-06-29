@@ -21,7 +21,10 @@ function SearchInner() {
 
   // Load the category tree once for the filter sidebar
   useEffect(() => {
-    api.categories().then(setTree).catch(() => {});
+    api
+      .categories()
+      .then(setTree)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -131,12 +134,7 @@ function ActiveFilters({
           removeHref={buildHref({ category: null, subcategory: null })}
         />
       )}
-      {sub && (
-        <FilterChip
-          label={sub.display}
-          removeHref={buildHref({ subcategory: null })}
-        />
-      )}
+      {sub && <FilterChip label={sub.display} removeHref={buildHref({ subcategory: null })} />}
       {(category || subcategoryKey) && (
         <Link
           href={q ? `/search?q=${encodeURIComponent(q)}` : "/categories"}

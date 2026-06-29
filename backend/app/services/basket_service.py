@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.basket_optimizer import BasketItem, Offering, optimize
 from ..core.normalizer import normalize
-from ..models import Product, Store, StoreProduct
+from ..models import Product, Store
 from ..schemas.basket import (
     BasketItemIn,
     BasketOptimizeResponse,

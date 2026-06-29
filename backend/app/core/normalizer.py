@@ -17,11 +17,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Optional
 
 from .categories import find_brand, find_category, find_subcategory
-
 
 # --- Bangla numeral & unit translation -------------------------------------
 

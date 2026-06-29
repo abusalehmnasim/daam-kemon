@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+:root {
+  color-scheme: light;
+}
 
 body {
   background: #f7f7f5;

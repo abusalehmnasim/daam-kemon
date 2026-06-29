@@ -17,7 +17,7 @@ def test_unimart_parse_regular_product():
         "stock": 192,
         "image_full_url": "https://myadmin.unimart.online/storage/app/public/product/all_img/0253692.webp",
     }
-    
+
     listing = scraper._parse_product(prod_data, "cooking_oil")
     assert listing is not None
     assert listing.store_product_id == "unimart:0253692"
@@ -32,7 +32,7 @@ def test_unimart_parse_regular_product():
 
 def test_unimart_parse_discounted_product():
     scraper = UnimartScraper()
-    
+
     # Amount discount
     prod_amount = {
         "id": 123,
@@ -49,7 +49,7 @@ def test_unimart_parse_discounted_product():
     assert listing is not None
     assert listing.price == 335.0  # 360 - 25
     assert listing.original_price == 360.0
-    
+
     # Percentage discount
     prod_percent = {
         "id": 124,
@@ -70,7 +70,7 @@ def test_unimart_parse_discounted_product():
 
 def test_unimart_parse_stock_status():
     scraper = UnimartScraper()
-    
+
     # Out of stock due to status
     prod_status = {
         "id": 1,

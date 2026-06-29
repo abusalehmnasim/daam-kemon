@@ -10,14 +10,25 @@ function fmt(price: number | null) {
   return "৳ " + price.toLocaleString("en-BD", { maximumFractionDigits: 2 });
 }
 
-function ConfidenceBadge({ confidence, method }: { confidence: number | null; method: string | null }) {
+function ConfidenceBadge({
+  confidence,
+  method,
+}: {
+  confidence: number | null;
+  method: string | null;
+}) {
   if (confidence == null || confidence >= 0.99) return null;
   const tier =
-    confidence >= 0.85 ? { label: "brand match", cls: "bg-blue-100 text-blue-800" } :
-    confidence >= 0.70 ? { label: "category match", cls: "bg-amber-100 text-amber-800" } :
-                         { label: "approximate", cls: "bg-gray-100 text-gray-700" };
+    confidence >= 0.85
+      ? { label: "brand match", cls: "bg-blue-100 text-blue-800" }
+      : confidence >= 0.7
+        ? { label: "category match", cls: "bg-amber-100 text-amber-800" }
+        : { label: "approximate", cls: "bg-gray-100 text-gray-700" };
   return (
-    <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded ${tier.cls}`} title={method ?? undefined}>
+    <span
+      className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded ${tier.cls}`}
+      title={method ?? undefined}
+    >
       {tier.label}
     </span>
   );
@@ -26,7 +37,7 @@ function ConfidenceBadge({ confidence, method }: { confidence: number | null; me
 export function PriceComparison({ group }: { group: ProductGroupOut }) {
   const [added, setAdded] = useState(false);
   const sorted: StoreOfferingOut[] = [...group.offerings].sort(
-    (a, b) => Number(!a.in_stock) - Number(!b.in_stock) || a.price - b.price,
+    (a, b) => Number(!a.in_stock) - Number(!b.in_stock) || a.price - b.price
   );
   const cheapestPrice = sorted.find((o) => o.in_stock)?.price ?? null;
 
@@ -86,7 +97,9 @@ export function PriceComparison({ group }: { group: ProductGroupOut }) {
                     </span>
                   )}
                   {o.original_price && o.original_price > o.price && (
-                    <div className="text-xs text-gray-400 line-through">{fmt(o.original_price)}</div>
+                    <div className="text-xs text-gray-400 line-through">
+                      {fmt(o.original_price)}
+                    </div>
                   )}
                 </div>
                 <a
