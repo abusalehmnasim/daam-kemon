@@ -13,6 +13,8 @@ Keep this file plain Python (not the DB) so the normalizer can run at scrape
 time without a DB round-trip. New categories belong here.
 """
 
+import re
+
 # Top-level groups (preserves user-specified order)
 CATEGORY_GROUPS: list[str] = [
     "Staples & Grains",
@@ -440,6 +442,12 @@ ALL_BRANDS = sorted(
     reverse=True,  # match "milk vita" before "milk"
 )
 
+# Word-boundary patterns, compiled once. Substring matching would let a short
+# brand token false-match inside another word ("rin" in "spring", "bd" in
+# "abdul", "city" in "velocity"). \b...\b requires the brand to stand as a
+# whole word/phrase.
+_BRAND_PATTERNS = {b: re.compile(r"\b" + re.escape(b) + r"\b") for b in ALL_BRANDS}
+
 
 def find_category(text_lower: str) -> str | None:
     """Return the best-matching category key, or None.
@@ -469,11 +477,14 @@ def find_subcategory(category: str, text_lower: str) -> str | None:
 
 
 def find_brand(text_lower: str, category: str | None = None) -> str | None:
-    """Match a known brand. If category given, prefer brands declared for it."""
+    """Match a known brand as a whole word. If category given, prefer brands
+    declared for it. Returns None when no vocabulary brand is present — we never
+    guess (a product-type word like "sunflower" is not a brand)."""
     candidates = CATEGORIES[category]["brands"] if category and category in CATEGORIES else ALL_BRANDS
     # match longest first to avoid "fresh" eating "fresh maida" before "rupchanda"
     for b in sorted(candidates, key=len, reverse=True):
-        if b in text_lower:
+        pat = _BRAND_PATTERNS.get(b) or re.compile(r"\b" + re.escape(b) + r"\b")
+        if pat.search(text_lower):
             return b
     return None
 

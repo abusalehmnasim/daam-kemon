@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.categories import CATEGORIES
+from ..core.categories import CATEGORIES, find_brand
 from ..core.normalizer import normalize
 from ..models import Product, Store, StoreProduct
 from ..schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
@@ -146,30 +146,16 @@ def _category_display(category: str) -> str:
     return cfg.get("display", category.replace("_", " ").title())
 
 
-_BRAND_STOPWORDS = {
-    "pure", "premium", "fortified", "natural", "fresh", "best", "the", "and",
-    "with", "extra", "value", "pack", "buy", "save", "offer", "loose", "open",
-}
+def _brand_hint_from_name(store_product_name: str, category: str | None = None) -> str | None:
+    """Brand label for a listing whose canonical row has no brand.
 
-
-def _brand_hint_from_name(store_product_name: str) -> str | None:
-    """Best-effort brand guess from a listing name when the canonical row
-    doesn't have one. Takes the first 1-2 alphabetic words, skipping common
-    marketing stopwords. Lowercased."""
+    Only returns a brand that's actually in our vocabulary (via find_brand) —
+    it never guesses the first word, which used to surface product-type words
+    ("sunflower", "soybean") and noise ("ec") as fake brands. None when no known
+    brand is present, so the UI simply shows no brand rather than a wrong one."""
     if not store_product_name:
         return None
-    tokens = [t for t in store_product_name.replace("(", " ").replace(")", " ").split() if t]
-    out: list[str] = []
-    for t in tokens[:4]:
-        lt = t.lower().strip(".,:")
-        if not lt.isalpha():
-            continue
-        if lt in _BRAND_STOPWORDS:
-            continue
-        out.append(lt)
-        if len(out) == 1:
-            break
-    return out[0] if out else None
+    return find_brand(store_product_name.lower(), category)
 
 
 def get_base_unit_qty(size_value: float | None, size_unit: str | None) -> float | None:
@@ -206,10 +192,9 @@ def _aggregate_groups(canonical: list[ProductGroupOut], target_qty: float | None
             )
             buckets[key] = bucket
         for off in pg.offerings:
-            # Prefer the canonical brand; fall back to a hint parsed from the
-            # listing name (e.g. "Starship Soyabean Oil" -> "starship") so
-            # unknown-brand listings still show a useful label.
-            brand = p.brand or _brand_hint_from_name(off.name)
+            # Prefer the canonical brand; otherwise look for a *known* brand in
+            # the listing name. No vocabulary brand -> no label (we don't guess).
+            brand = p.brand or _brand_hint_from_name(off.name, p.category)
             bucket.offerings.append(AggregatedOffering(
                 store_product_id=off.store_product_id,
                 store_name=off.store_name,
