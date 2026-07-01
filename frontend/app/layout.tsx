@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://daamkemon.vercel.app"),
   title: "Daam Kemon — Grocery price intelligence for Bangladesh",
   description:
     "Compare grocery and daily essential prices across Chaldal, Shwapno, Othoba and Unimart.",

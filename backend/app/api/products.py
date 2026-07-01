@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,32 @@ from ..schemas.product import ProductGroupOut, ProductOut
 from ..services.search_service import _build_group, _store_display_map
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+class ProductSlugOut(BaseModel):
+    """Minimal fields the frontend needs to build a slug + sitemap URL."""
+    id: int
+    name: str
+    brand: str | None = None
+    category: str
+    subcategory: str | None = None
+
+
+# Declared before /{product_id} so "sitemap" isn't parsed as an int id.
+@router.get("/sitemap", response_model=list[ProductSlugOut])
+async def products_for_sitemap(session: AsyncSession = Depends(get_session)) -> list[ProductSlugOut]:
+    """Every canonical product, minimal fields — powers the Next.js sitemap.
+
+    Unbounded on purpose: a sitemap needs all URLs. Google allows 50k per file;
+    revisit with sharding if the catalog ever exceeds that."""
+    res = await session.execute(select(Product).order_by(Product.id))
+    return [
+        ProductSlugOut(
+            id=p.id, name=p.name, brand=p.brand,
+            category=p.category, subcategory=p.subcategory,
+        )
+        for p in res.scalars().unique().all()
+    ]
 
 
 @router.get("/{product_id}", response_model=ProductGroupOut)

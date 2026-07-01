@@ -194,6 +194,32 @@ def test_list_products(client):
     assert body[0]["size_value"] == 5.0
 
 
+def test_products_sitemap(client):
+    products = [
+        SimpleNamespace(
+            id=1, name="Fresh Soybean Oil 5L", brand="Fresh",
+            category="cooking_oil", subcategory="soybean",
+        ),
+        SimpleNamespace(
+            id=2, name="Teer Atta 2kg", brand="Teer",
+            category="flour", subcategory="atta",
+        ),
+    ]
+    _use_session(FakeSession([FakeResult(rows=products)]))
+
+    res = client.get("/products/sitemap")
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body) == 2
+    assert body[0] == {
+        "id": 1,
+        "name": "Fresh Soybean Oil 5L",
+        "brand": "Fresh",
+        "category": "cooking_oil",
+        "subcategory": "soybean",
+    }
+
+
 def test_get_product_found(client, monkeypatch):
     # The found path delegates aggregation to two search_service helpers that
     # issue their own pg_trgm queries — patch them so we test only the route's
