@@ -1,4 +1,0 @@
-# `release` runs once per deploy (Heroku-style platforms); `web` just serves.
-# Migrations are decoupled from boot so a cold-start wake never re-runs them.
-release: python migrate.py
-web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
