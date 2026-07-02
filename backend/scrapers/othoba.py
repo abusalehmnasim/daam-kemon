@@ -13,6 +13,15 @@ Verified live (probe on /oil):
   - Original (when discounted): `del.old-price` -> "Tk 1,120"
   - Hidden SKU input: `input.dl-product-sku` -> "MGIN70981" etc.
 
+Stock (probed 2026-07): listing cards carry NO add-to-cart button and NO stock
+indicator; a 479-card probe across 9 categories found zero out-of-stock items,
+so Othoba appears to filter OOS products out of category listings. The real
+out-of-stock marker is a `.sold-out-tag` / `.soldOutTag` badge that lives on the
+product *detail* page. We scrape listings only, so `in_stock` defaults to True
+and the badge check below is best-effort. Reliable per-SKU stock would require
+visiting each detail page — deliberately not done (defeats the one-round-trip
+snapshot design).
+
 Implementation note: an earlier version walked the DOM with
 ElementHandle.query_selector, and Playwright returned no children — likely
 because the page kept mutating after document-ready and handles went stale.
@@ -154,10 +163,15 @@ class OthobaScraper(StoreScraper):
 
                     const url = href.startsWith('http') ? href : base + (href.startsWith('/') ? href : '/' + href);
 
-                    const cardText = (card.innerText || '').toLowerCase();
-                    const soldOut = /out of stock|stock out|stockout|sold out|unavailable/.test(cardText)
-                                 || !!card.querySelector('.out-of-stock, .stock-out, .stockout, [disabled].add-to-cart, .add-to-cart[disabled]');
-                    const in_stock = !soldOut;
+                    // Othoba marks stock-out with a .sold-out-tag / .soldOutTag
+                    // badge (confirmed in its markup). Listing cards have no
+                    // add-to-cart button, and a 479-card probe across 9 categories
+                    // found zero OOS items — Othoba appears to filter out-of-stock
+                    // products out of category listings. This guard is safe
+                    // insurance: it only fires if such a badge is actually rendered
+                    // on a card, and defaults to in-stock otherwise.
+                    const soldEl = card.querySelector('.sold-out-tag, .soldOutTag, .out-of-stock');
+                    const in_stock = !(soldEl && soldEl.offsetParent !== null);
 
                     out.push({ sku, name, url, price, original_price: original, in_stock });
                 }
