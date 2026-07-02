@@ -39,17 +39,18 @@ from .base import RawListing, StoreScraper
 logger = logging.getLogger(__name__)
 
 
-async def _get_or_create_product(session, np) -> Product:
+async def _get_or_create_product(session, np) -> tuple[Product | None, float, str]:
     """Find an existing canonical Product that matches `np`, or create one.
 
-    The matcher operates on candidates the SQL layer pre-filters by category.
-    If nothing matches with confidence >= 0.7 (BRAND tier or better), we
-    create a new Product row. CATEGORY/LOOSE tier matches still attach the
-    listing to an existing product but do not block creation.
+    Returns (product, match_confidence, match_method). The confidence/method are
+    the *real* matcher verdict — 0.85/"brand", 1.0/"exact", or "new" for a freshly
+    created canonical — so the persisted columns are honest and auditable. (This
+    used to always store 1.0/"exact" because a redundant second matcher pass in
+    the caller excluded the very product it compared against.)
     """
     if not np.category:
         # Can't decide a category — store as orphan (no product link).
-        return None  # type: ignore[return-value]
+        return None, 0.0, "unmatched"
 
     res = await session.execute(
         select(Product).where(Product.category == np.category)
@@ -78,7 +79,7 @@ async def _get_or_create_product(session, np) -> Product:
     # aggregation re-collapses them under "5L Soybean Oil".
     if result.product_id is not None and result.confidence >= 0.85:
         res = await session.execute(select(Product).where(Product.id == result.product_id))
-        return res.scalar_one()
+        return res.scalar_one(), result.confidence, result.method
 
     # Build a sensible canonical name. We want it readable, not the raw scrape.
     parts = []
@@ -110,7 +111,8 @@ async def _get_or_create_product(session, np) -> Product:
     dup_res = await session.execute(dup_stmt)
     existing_dup = dup_res.scalar_one_or_none()
     if existing_dup is not None:
-        return existing_dup
+        # Same (brand, subcategory, size, loose) spec by construction — exact.
+        return existing_dup, 1.0, "exact"
 
     canonical_name = " ".join(parts)
 
@@ -127,7 +129,9 @@ async def _get_or_create_product(session, np) -> Product:
     )
     session.add(product)
     await session.flush()
-    return product
+    # Freshly created from this listing: exact by definition, but tag as "new"
+    # so audits can distinguish spawned canonicals from matched ones.
+    return product, 1.0, "new"
 
 
 async def _upsert_store_product(session, scraper: StoreScraper, listing: RawListing,
@@ -205,34 +209,10 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
                 # extract enough attributes) doesn't poison the whole run.
                 try:
                     async with session.begin_nested():
-                        product = await _get_or_create_product(session, np)
+                        product, confidence, method = await _get_or_create_product(session, np)
                         if product is None:
                             await _upsert_store_product(session, scraper, listing, None, 0.0, "unmatched")
                             continue
-
-                        # Re-run matcher for the confidence score; for newly
-                        # created products the matcher returns nothing useful,
-                        # so default to 1.0.
-                        res = await session.execute(
-                            select(Product).where(Product.category == np.category)
-                        )
-                        candidates = [
-                            CandidateProduct(
-                                id=p.id,
-                                normalized_name=p.normalized_name,
-                                brand=p.brand,
-                                category=p.category,
-                                subcategory=p.subcategory,
-                                size_value=float(p.size_value) if p.size_value else None,
-                                size_unit=p.size_unit,
-                                base_unit_qty=float(p.base_unit_qty) if p.base_unit_qty else None,
-                                is_loose=p.is_loose,
-                            )
-                            for p in res.scalars().unique().all() if p.id != product.id
-                        ]
-                        mr = match(np, candidates)
-                        confidence = mr.confidence if mr.product_id == product.id else 1.0
-                        method = mr.method if mr.product_id == product.id else "exact"
 
                         await _upsert_store_product(session, scraper, listing, product.id, confidence, method)
                         matched += 1

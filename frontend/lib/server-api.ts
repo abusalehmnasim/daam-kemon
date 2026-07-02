@@ -15,14 +15,16 @@ const API_BASE =
 // 6h — matches the daily-ish scrape cadence; prices don't move faster than this.
 const REVALIDATE = 21600;
 
+// Returns null ONLY for a genuine 404 (product doesn't exist). Any other
+// failure — network error, 5xx, cold-start timeout — THROWS, so Next serves the
+// last-good ISR page and never caches the failure. Returning null on transient
+// errors would make notFound() cache a 404 for the whole revalidate window,
+// deindexing a real product every time the backend hiccups.
 async function serverFetch<T>(path: string): Promise<T | null> {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, { next: { revalidate: REVALIDATE } });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+  const res = await fetch(`${API_BASE}${path}`, { next: { revalidate: REVALIDATE } });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Backend ${res.status} for ${path}`);
+  return (await res.json()) as T;
 }
 
 export function getProduct(id: number): Promise<ProductGroupOut | null> {
@@ -37,6 +39,12 @@ export interface ProductSlugData {
   subcategory: string | null;
 }
 
-export function getProductsForSitemap(): Promise<ProductSlugData[] | null> {
-  return serverFetch<ProductSlugData[]>(`/products/sitemap`);
+export async function getProductsForSitemap(): Promise<ProductSlugData[] | null> {
+  // Swallow failures here: a transient backend blip should keep the last-good
+  // sitemap (ISR) and must never fail the build — not deindex, unlike a page 404.
+  try {
+    return await serverFetch<ProductSlugData[]>(`/products/sitemap`);
+  } catch {
+    return null;
+  }
 }
