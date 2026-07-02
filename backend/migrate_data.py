@@ -11,6 +11,7 @@ import asyncio
 import logging
 import os
 import sys
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from sqlalchemy import MetaData, Table, text
@@ -32,6 +33,12 @@ TABLES = [
     "outbound_clicks",
     "scrape_runs"
 ]
+
+def _host_label(url: str) -> str:
+    """host:port/db with the password stripped — safe to log."""
+    p = urlparse(url)
+    return f"{p.hostname or '?'}:{p.port or ''}{p.path or ''}"
+
 
 def clean_url(url: str | None) -> str:
     if not url:
@@ -99,6 +106,18 @@ async def main():
     source_url = clean_url(source_raw)
     target_url = clean_url(target_raw)
 
+    source_host = _host_label(source_url)
+    target_host = _host_label(target_url)
+    target_hostname = urlparse(target_url).hostname or ""
+
+    # Never truncate the database we're reading from.
+    if source_host == target_host:
+        logger.error(
+            "SOURCE and TARGET are the same database (%s). Aborting — this would "
+            "TRUNCATE the very data being copied.", target_host,
+        )
+        sys.exit(1)
+
     logger.info("Initializing database engines...")
     source_engine = create_async_engine(source_url, future=True)
     target_engine = create_async_engine(target_url, future=True)
@@ -106,6 +125,36 @@ async def main():
     metadata = MetaData()
 
     try:
+        # --- Preflight: show exactly what will be destroyed, then require an
+        # explicit confirmation. This script TRUNCATEs every target table with
+        # CASCADE; a swapped/leftover TARGET_DATABASE_URL would otherwise wipe
+        # production silently. ---
+        async with target_engine.connect() as pre:
+            counts: dict[str, object] = {}
+            for t in TABLES:
+                try:
+                    # t comes from the hardcoded TABLES list, never user input.
+                    r = await pre.execute(text(f"SELECT COUNT(*) FROM {t}"))
+                    counts[t] = r.scalar_one()
+                except Exception:
+                    counts[t] = "(missing)"
+        total = sum(v for v in counts.values() if isinstance(v, int))
+
+        logger.warning("DESTRUCTIVE data migration — review carefully:")
+        logger.warning("  FROM (source): %s", source_host)
+        logger.warning("  TO   (target): %s   <-- will be OVERWRITTEN", target_host)
+        for t in TABLES:
+            logger.warning("    TRUNCATE %-16s (%s existing rows destroyed)", t, counts[t])
+
+        confirmed = "--yes" in sys.argv or os.getenv("CONFIRM_TARGET_HOST") == target_hostname
+        if not confirmed:
+            logger.error(
+                "Refusing to proceed without confirmation. This will destroy %s rows in "
+                "%s. Re-run with --yes, or set CONFIRM_TARGET_HOST=%s to confirm.",
+                total, target_host, target_hostname,
+            )
+            sys.exit(1)
+
         async with source_engine.connect() as source_conn, target_engine.begin() as target_conn:
             logger.info("Database connections established.")
             logger.info("Reflecting target database schema...")
