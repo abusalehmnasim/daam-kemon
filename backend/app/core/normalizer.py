@@ -43,6 +43,7 @@ UNIT_ALIASES = {
     "l":      ("L",   1000.0),
     "lt":     ("L",   1000.0),
     "ltr":    ("L",   1000.0),
+    "ltrs":   ("L",   1000.0),
     "litre":  ("L",   1000.0),
     "litres": ("L",   1000.0),
     "liter":  ("L",   1000.0),
@@ -50,6 +51,8 @@ UNIT_ALIASES = {
     "ml":     ("ML",  1.0),
     "milliliter":  ("ML", 1.0),
     "milliliters": ("ML", 1.0),
+    "millilitre":  ("ML", 1.0),
+    "millilitres": ("ML", 1.0),
     "kg":     ("KG",  1000.0),
     "kgs":    ("KG",  1000.0),
     "kilogram":  ("KG", 1000.0),
@@ -123,14 +126,22 @@ def _translate_bangla(text: str) -> str:
     return text
 
 
-def _clean(text: str) -> str:
+def _pre_clean(text: str) -> str:
+    """Unicode + Bangla + lowercase + whitespace, but WITHOUT stripping
+    punctuation — so decimal separators in sizes ("1.5 l") survive until
+    _extract_size has consumed them. Stripping "." first turns "1.5" into
+    "1 5" and the size parses as 5, silently corrupting the match bucket."""
     text = unicodedata.normalize("NFKC", text)
     text = _translate_bangla(text)
     text = text.lower()
+    return _MULTI_SPACE_RE.sub(" ", text).strip()
+
+
+def _clean(text: str) -> str:
+    text = _pre_clean(text)
     text = _PUNCT_RE.sub(" ", text)
     text = _NOISE_RE.sub(" ", text)
-    text = _MULTI_SPACE_RE.sub(" ", text).strip()
-    return text
+    return _MULTI_SPACE_RE.sub(" ", text).strip()
 
 
 def _extract_size(text: str) -> tuple[Optional[float], Optional[str], Optional[float], str]:
@@ -172,8 +183,13 @@ _LOOSE_HINTS = ("loose", "open", "khola", "খোলা", "কাঁচা")
 
 def normalize(raw_name: str) -> NormalizedProduct:
     """Top-level entry point: messy listing string -> NormalizedProduct."""
+    # Extract size from the punctuation-preserving pre-clean so "1.5 l" reads as
+    # 1.5 L, not 5 L. Then clean (strip punctuation) for matching + the name.
+    pre = _pre_clean(raw_name)
+    size_value, size_unit, base_qty, pre_no_size = _extract_size(pre)
+
     cleaned = _clean(raw_name)
-    size_value, size_unit, base_qty, cleaned_no_size = _extract_size(cleaned)
+    cleaned_no_size = _clean(pre_no_size)
 
     category = find_category(cleaned)
     subcategory = find_subcategory(category, cleaned) if category else None

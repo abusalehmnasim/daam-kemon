@@ -48,9 +48,11 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
   }, [group.offerings]);
 
   const handleAdd = (off: AggregatedOffering) => {
+    // The aggregated group has no canonical product_id, so add by query — the
+    // optimizer resolves it to this bucket and picks the cheapest per store.
+    // Passing undefined for both fields made every added item "(empty item)".
     addToBasket({
-      productId: undefined,
-      query: undefined,
+      query: group.display_name,
       label: `${off.brand ? off.brand + " · " : ""}${group.display_name}`,
       quantity: 1,
     });

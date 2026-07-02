@@ -23,10 +23,10 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from app.database import session_scope
-from app.models import StoreProduct
+from app.models import ScrapeRun, StoreProduct
 
 from . import SCRAPERS
 from .runner import run_store
@@ -68,23 +68,50 @@ async def scrape_all_stores() -> None:
     logger.info("Scheduled scrape complete")
 
 
-async def cleanup_stale_listings() -> None:
-    """Delete StoreProduct rows we haven't seen in STALE_DAYS days.
+def _stores_safe_to_prune(recent_max_scraped: dict[str, int]) -> set[str]:
+    """Stores that scraped a healthy (>0) number of items recently.
 
-    If a store drops a SKU we should stop showing it. PriceHistory rows cascade.
+    Only these may have their stale listings pruned. A store whose scraper
+    silently broke (0 items, but the run still records status='success') must
+    NEVER have its catalog deleted — because `price_history` cascades on that
+    delete, and that dataset cannot be back-filled. This guard is the difference
+    between "a store redesigned its HTML" and "we destroyed our own history."
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_DAYS)
+    return {name for name, mx in recent_max_scraped.items() if (mx or 0) > 0}
+
+
+async def cleanup_stale_listings() -> None:
+    """Delete StoreProduct rows not seen in STALE_DAYS days — but only for stores
+    that actually scraped something recently, so a silently-broken scraper can't
+    wipe a store's catalog (and cascade away its price history)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=STALE_DAYS)
+    window_start = now - timedelta(days=STALE_DAYS)
     async with session_scope() as session:
-        # Count first for the log line
-        n = (await session.execute(
-            select(StoreProduct).where(StoreProduct.last_seen_at < cutoff)
-        )).scalars().unique().all()
-        count = len(n)
-        if count == 0:
-            logger.info("Cleanup: no stale listings")
+        rows = (
+            await session.execute(
+                select(ScrapeRun.store_name, func.max(ScrapeRun.items_scraped))
+                .where(ScrapeRun.started_at >= window_start)
+                .group_by(ScrapeRun.store_name)
+            )
+        ).all()
+        healthy = _stores_safe_to_prune({name: (mx or 0) for name, mx in rows})
+        if not healthy:
+            logger.warning(
+                "Cleanup skipped: no store scraped >0 items since %s — refusing to "
+                "delete listings so a broken scraper can't wipe the catalog.",
+                window_start.isoformat(),
+            )
             return
-        await session.execute(delete(StoreProduct).where(StoreProduct.last_seen_at < cutoff))
-        logger.info("Cleanup: deleted %d listings not seen since %s", count, cutoff.isoformat())
+        result = await session.execute(
+            delete(StoreProduct)
+            .where(StoreProduct.last_seen_at < cutoff)
+            .where(StoreProduct.store_name.in_(healthy))
+        )
+        logger.info(
+            "Cleanup: deleted %s stale listings from healthy stores %s",
+            result.rowcount, sorted(healthy),
+        )
 
 
 # --- Entry point ------------------------------------------------------------

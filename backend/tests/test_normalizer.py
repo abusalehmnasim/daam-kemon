@@ -50,6 +50,23 @@ def test_kg_g_size_collapse():
     assert a.base_unit_qty == b.base_unit_qty == 2000.0
 
 
+def test_decimal_sizes_are_not_corrupted():
+    # Regression: "." was stripped before size extraction, so 1.5 -> "1 5" -> 5.
+    assert normalize("Mojo Soybean Oil 1.5 L").base_unit_qty == 1500.0
+    assert normalize("Farm Fresh Milk 0.5 ltr").base_unit_qty == 500.0
+    assert normalize("Miniket Rice 2.5 kg").base_unit_qty == 2500.0
+    half = normalize("Fresh Milk 0.5 L")
+    assert half.size_value == 0.5 and half.size_unit == "L"
+
+
+def test_unit_spelling_variants_do_not_crash():
+    # Regression: the regex matched "ltrs"/"millilitre" but the alias table
+    # lacked the keys, raising KeyError -> 500 on search and aborting scrapes.
+    assert normalize("Rupchanda Soybean Oil 5 ltrs").base_unit_qty == 5000.0
+    assert normalize("Milk 500 millilitre").base_unit_qty == 500.0
+    assert normalize("Juice 250 millilitres").base_unit_qty == 250.0
+
+
 def test_brand_stripped_from_normalized_name():
     n = normalize("Rupchanda Soyabean Oil 5L")
     assert "rupchanda" not in n.normalized_name
