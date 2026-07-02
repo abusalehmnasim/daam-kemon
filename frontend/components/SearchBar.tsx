@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function SearchBar({ initial = "" }: { initial?: string }) {
+export function SearchBar({
+  initial = "",
+  autoFocus = false,
+}: {
+  initial?: string;
+  autoFocus?: boolean;
+}) {
   const [q, setQ] = useState(initial);
   const router = useRouter();
 
@@ -13,19 +19,21 @@ export function SearchBar({ initial = "" }: { initial?: string }) {
         e.preventDefault();
         if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
       }}
-      className="flex gap-2 w-full"
+      className="flex gap-2"
+      role="search"
     >
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         type="search"
         placeholder="আজ কী কিনতে চান? (e.g. 5L oil, miniket 5kg)"
-        className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-base focus:outline-none focus:ring-2 focus:ring-brand"
-        autoFocus
+        aria-label="Search products"
+        className="h-11 flex-1 rounded-lg border border-line bg-card px-4 text-[15px] text-ink placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+        autoFocus={autoFocus}
       />
       <button
         type="submit"
-        className="px-4 py-3 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark"
+        className="h-11 rounded-lg bg-ink px-5 text-sm font-medium text-white transition-colors hover:bg-black focus-visible:outline-offset-2"
       >
         Search
       </button>

@@ -6,8 +6,29 @@
   color-scheme: light;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: #f7f7f5;
-  color: #111827;
+  background: #f5f4f0;
+  color: #1a1b1d;
+  font-family: var(--font-sans), var(--font-bengali), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prices and any aligned figures use tabular numerals so columns line up. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One considered focus style everywhere. */
+:focus-visible {
+  outline: 2px solid #0e7a46;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: #d7ebdd;
 }
