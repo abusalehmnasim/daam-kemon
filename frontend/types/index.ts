@@ -69,7 +69,6 @@ export interface SearchResponse {
   parsed_size: string | null;
   groups: AggregatedGroup[];
   total_groups: number;
-  canonical_groups: ProductGroupOut[];
 }
 
 export interface SubcategoryOut {

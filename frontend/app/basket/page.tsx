@@ -4,10 +4,39 @@ import { api } from "@/lib/api";
 import { load, remove, setQuantity, toApi, type BasketEntry } from "@/lib/basketStore";
 import type { BasketOptimizeResponse, StorePlanOut } from "@/types";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function fmt(n: number) {
   return "৳ " + n.toLocaleString("en-BD", { maximumFractionDigits: 2 });
+}
+
+function QtyInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  // Local text state so the user can clear/retype freely; clamp only on commit
+  // (blur/Enter), not on every keystroke — otherwise clearing snaps to 1 and
+  // typing "12" briefly commits 1 then 12.
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+  const commit = () => {
+    const n = Math.max(1, Math.min(1000, Math.floor(Number(text) || 1)));
+    setText(String(n));
+    onCommit(n);
+  };
+  return (
+    <input
+      type="number"
+      min={1}
+      max={1000}
+      value={text}
+      onChange={(ev) => setText(ev.target.value)}
+      onBlur={commit}
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter") ev.currentTarget.blur();
+      }}
+      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+    />
+  );
 }
 
 function PlanCard({ plan, title }: { plan: StorePlanOut; title?: string }) {
@@ -53,20 +82,25 @@ export default function BasketPage() {
     setEntries(load());
   }, []);
 
+  const optimizeSeq = useRef(0);
+
   const refreshOptimize = async (next: BasketEntry[]) => {
     if (next.length === 0) {
       setResult(null);
       return;
     }
+    // Sequence guard: only the latest optimize call may update state, so a slow
+    // earlier response can't overwrite a newer one's totals.
+    const seq = ++optimizeSeq.current;
     setLoading(true);
     setError(null);
     try {
       const res = await api.optimize(toApi(next));
-      setResult(res);
+      if (seq === optimizeSeq.current) setResult(res);
     } catch (e) {
-      setError(String(e));
+      if (seq === optimizeSeq.current) setError(String(e));
     } finally {
-      setLoading(false);
+      if (seq === optimizeSeq.current) setLoading(false);
     }
   };
 
@@ -97,15 +131,7 @@ export default function BasketPage() {
               {e.query && <p className="text-xs text-gray-500">query: {e.query}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <input
-                type="number"
-                min={1}
-                value={e.quantity}
-                onChange={(ev) =>
-                  setEntries(setQuantity(e.id, Math.max(1, Number(ev.target.value) || 1)))
-                }
-                className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
-              />
+              <QtyInput value={e.quantity} onCommit={(n) => setEntries(setQuantity(e.id, n))} />
               <button
                 onClick={() => setEntries(remove(e.id))}
                 className="text-xs text-red-600 hover:underline"

@@ -130,7 +130,9 @@ def match(np: NormalizedProduct, candidates: Sequence[CandidateProduct]) -> Matc
     # at the same size in the same subcategory is a fair comparison.
     if np.is_loose and np.base_unit_qty is not None:
         for c in same_cat:
-            if c.is_loose and _sizes_equivalent(c.base_unit_qty, np.base_unit_qty):
+            if (c.is_loose
+                    and c.subcategory == np.subcategory
+                    and _sizes_equivalent(c.base_unit_qty, np.base_unit_qty)):
                 return MatchResult(c.id, 0.55, "loose",
                                    "loose goods, same subcat and size")
 

@@ -85,7 +85,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
     <article>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          // Escape "<" so a product name containing "</script>" can't break out
+          // of the tag. JSON.stringify does not escape it; product names are
+          // vocabulary-derived today but this sink must defend itself.
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       <nav className="text-xs text-gray-500 mb-3">

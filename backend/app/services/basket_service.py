@@ -73,7 +73,10 @@ async def optimize_basket(
                 continue
             products = [p]
             label = p.name
-            key = f"pid:{p.id}"
+            # Include idx so the same product added as two lines stays two items;
+            # a bare "pid:{id}" key collapses them in the optimizer and inflates
+            # split savings by silently dropping one unit.
+            key = f"pid:{idx}:{p.id}"
         elif item.query:
             products = await _resolve_query_to_products(session, item.query)
             if not products:

@@ -32,11 +32,12 @@ class Settings:
         # Read live so tests / deploys can set it via the environment.
         return os.getenv("ENVIRONMENT", "development")
 
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    cors_origins: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-    # If True, the search service will live-match scraped names against canonical
-    # products. False (default) trusts the matcher run at ingest time.
-    live_match: bool = os.getenv("LIVE_MATCH", "false").lower() == "true"
+    # strip each origin — "a.com, b.com" (space after comma) would otherwise
+    # yield " b.com", which never matches an Origin header and silently breaks
+    # CORS for every origin but the first.
+    cors_origins: list[str] = [
+        o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+    ]
 
 
 @lru_cache(maxsize=1)

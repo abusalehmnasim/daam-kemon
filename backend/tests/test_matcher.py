@@ -21,6 +21,19 @@ def test_exact_match_wins():
     assert r.method == "exact"
 
 
+def test_loose_tier_respects_subcategory():
+    # A loose miniket rice listing must NOT match a loose najirshail canonical —
+    # different varieties, different prices. (Regression: the loose tier ignored
+    # subcategory and collapsed them.)
+    candidates = [
+        _cand(1, "najirshail rice", None, "rice", "najirshail", 1, "KG", 1000, loose=True),
+    ]
+    np = normalize("Miniket Rice (Loose) 1 KG")
+    assert np.is_loose and np.subcategory == "miniket"
+    r = match(np, candidates)
+    assert r.product_id != 1  # no false loose match across subcategories
+
+
 def test_brand_tier_when_unit_differs():
     candidates = [
         _cand(1, "soyabean oil", "rupchanda", "cooking_oil", "soybean", 5000, "ML", 5000),

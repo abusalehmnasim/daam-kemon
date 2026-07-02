@@ -29,6 +29,9 @@ function SearchInner() {
 
   useEffect(() => {
     if (!q && !categoryKey) return;
+    // Guard against out-of-order responses: a slow earlier request must not
+    // overwrite a newer one's results (or kill its spinner).
+    let stale = false;
     setLoading(true);
     setError(null);
     api
@@ -36,9 +39,18 @@ function SearchInner() {
         category: categoryKey ?? undefined,
         subcategory: subcategoryKey ?? undefined,
       })
-      .then(setData)
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (!stale) setData(d);
+      })
+      .catch((e) => {
+        if (!stale) setError(String(e));
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [q, categoryKey, subcategoryKey]);
 
   const activeCategory: CategoryOut | undefined = useMemo(() => {

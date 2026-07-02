@@ -47,6 +47,8 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
     return ordered;
   }, [group.offerings]);
 
+  const namedBrandCount = byBrand.filter((b) => b.brand !== "_unbranded").length;
+
   const handleAdd = (off: AggregatedOffering) => {
     // The aggregated group has no canonical product_id, so add by query — the
     // optimizer resolves it to this bucket and picks the cheapest per store.
@@ -69,8 +71,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
             {group.offerings.length} offer{group.offerings.length === 1 ? "" : "s"} across{" "}
             {new Set(group.offerings.map((o) => o.store_name)).size} stores
             {" · "}
-            {byBrand.filter((b) => b.brand !== "_unbranded").length} brand
-            {byBrand.length === 1 ? "" : "s"}
+            {namedBrandCount} brand{namedBrandCount === 1 ? "" : "s"}
           </p>
         </div>
         {group.cheapest_price !== null && (

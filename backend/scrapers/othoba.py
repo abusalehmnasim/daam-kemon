@@ -106,7 +106,7 @@ class OthobaScraper(StoreScraper):
                     original_price=item.get("original_price"),
                     url=item["url"],
                     image_url=None,
-                    in_stock=True,
+                    in_stock=item.get("in_stock", True),
                 )
             await page.mouse.wheel(0, 8000)
             await page.wait_for_timeout(1100)
@@ -154,7 +154,12 @@ class OthobaScraper(StoreScraper):
 
                     const url = href.startsWith('http') ? href : base + (href.startsWith('/') ? href : '/' + href);
 
-                    out.push({ sku, name, url, price, original_price: original });
+                    const cardText = (card.innerText || '').toLowerCase();
+                    const soldOut = /out of stock|stock out|stockout|sold out|unavailable/.test(cardText)
+                                 || !!card.querySelector('.out-of-stock, .stock-out, .stockout, [disabled].add-to-cart, .add-to-cart[disabled]');
+                    const in_stock = !soldOut;
+
+                    out.push({ sku, name, url, price, original_price: original, in_stock });
                 }
                 return { total: cards.length, items: out };
             }""",

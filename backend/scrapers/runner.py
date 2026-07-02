@@ -165,7 +165,13 @@ async def _upsert_store_product(session, scraper: StoreScraper, listing: RawList
         session.add(PriceHistory(store_product_id=sp.id, price=listing.price, in_stock=listing.in_stock))
         return True
 
-    price_changed = float(existing.price) != float(listing.price) or existing.in_stock != listing.in_stock
+    # Round to the DB's NUMERIC(10,2) precision before comparing — otherwise a
+    # discount float like 220.00000000000003 never equals the stored 220.00 and
+    # we append a phantom "price changed" history row on every single run.
+    price_changed = (
+        round(float(existing.price), 2) != round(float(listing.price), 2)
+        or existing.in_stock != listing.in_stock
+    )
     existing.price = listing.price
     existing.original_price = listing.original_price
     existing.in_stock = listing.in_stock

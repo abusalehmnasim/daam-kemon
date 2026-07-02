@@ -2,7 +2,6 @@ import type {
   BasketItemIn,
   BasketOptimizeResponse,
   CategoryGroupOut,
-  ProductGroupOut,
   SearchResponse,
 } from "@/types";
 
@@ -30,7 +29,6 @@ export const api = {
     if (opts?.subcategory) params.set("subcategory", opts.subcategory);
     return request<SearchResponse>(`/search?${params.toString()}`);
   },
-  product: (id: number) => request<ProductGroupOut>(`/products/${id}`),
   categories: () => request<CategoryGroupOut[]>(`/categories`),
   optimize: (items: BasketItemIn[], stores?: string[]) =>
     request<BasketOptimizeResponse>(`/basket/optimize`, {

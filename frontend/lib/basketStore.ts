@@ -16,7 +16,23 @@ export function load(): BasketEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as BasketEntry[]) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    // Validate shape: a stale/foreign/hand-edited key ("null", an object, an
+    // older schema) must not crash every basket render with entries.map().
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (e): e is Record<string, unknown> =>
+          !!e && typeof e === "object" && typeof (e as { id?: unknown }).id === "string"
+      )
+      .map((e) => ({
+        id: e.id as string,
+        productId: typeof e.productId === "number" ? e.productId : undefined,
+        query: typeof e.query === "string" ? e.query : undefined,
+        label: typeof e.label === "string" ? e.label : ((e.query as string) ?? "item"),
+        quantity: typeof e.quantity === "number" && e.quantity > 0 ? e.quantity : 1,
+      }));
   } catch {
     return [];
   }

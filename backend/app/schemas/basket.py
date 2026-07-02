@@ -13,12 +13,16 @@ class BasketItemIn(BaseModel):
     let the optimizer pick the cheapest qualifying offering per store.
     """
     product_id: Optional[int] = None
-    query: Optional[str] = None
-    quantity: float = 1
+    query: Optional[str] = Field(None, max_length=200)
+    # Bounded + finite: an unbounded/NaN quantity flows into line_total and
+    # produces garbage or NaN cart totals.
+    quantity: float = Field(1, gt=0, le=1000, allow_inf_nan=False)
 
 
 class BasketOptimizeRequest(BaseModel):
-    items: list[BasketItemIn]
+    # Cap the basket size: each item triggers a DB round-trip, so an unbounded
+    # list is a cheap anonymous DoS on the single free-tier worker.
+    items: list[BasketItemIn] = Field(max_length=100)
     stores: Optional[list[str]] = None        # restrict to these stores; default = all active
 
 

@@ -45,19 +45,21 @@ def test_split_proposed_only_when_savings_meaningful():
         assert res.single_store.total - split_total >= 30
 
 
-def test_optimizer_handles_missing_items_gracefully():
+def test_split_is_surfaced_when_single_store_cannot_fulfill_basket():
+    # oil only at chaldal, rice only at shwapno — no single store has both.
     items = [
         _item("oil",  "5L Oil",  1, ("chaldal", 1, 900)),
         _item("rice", "Rice 5kg", 1, ("shwapno", 2, 420)),
     ]
     res = optimize(items, STORES, FEES)
-    # No single store fulfills both. The best_single will be a partial cart;
-    # the split should fulfill everything.
     assert res.single_store is not None
     assert len(res.single_store.missing_items) >= 1
-    if res.split:
-        all_keys = {ip.item_key for p in res.split for ip in p.items}
-        assert all_keys == {"oil", "rice"}
+    # The split is the ONLY plan that buys everything, so it must be surfaced —
+    # the savings threshold must not suppress it (regression: it used to, because
+    # a partial single total was compared against a complete split total).
+    assert len(res.split) >= 1
+    all_keys = {ip.item_key for p in res.split for ip in p.items}
+    assert all_keys == {"oil", "rice"}
 
 
 def test_empty_basket_returns_empty_result():

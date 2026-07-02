@@ -127,6 +127,31 @@ def test_basket_optimize_requires_body(client):
     assert client.post("/basket/optimize", json={"items": "nope"}).status_code == 422
 
 
+def test_basket_optimize_bounds_inputs(client):
+    # >100 items => 422 (DoS guard: each item is a DB round-trip)
+    big = {"items": [{"query": "oil", "quantity": 1} for _ in range(101)]}
+    assert client.post("/basket/optimize", json=big).status_code == 422
+    # non-positive / oversized quantity => 422
+    assert (
+        client.post("/basket/optimize", json={"items": [{"query": "oil", "quantity": 0}]}).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/basket/optimize", json={"items": [{"query": "oil", "quantity": 99999}]}
+        ).status_code
+        == 422
+    )
+
+
+def test_click_same_host_guard():
+    from app.api.click import _same_host
+
+    assert _same_host("https://chaldal.com/p/5", "https://chaldal.com") is True
+    assert _same_host("https://evil.example/x", "https://chaldal.com") is False
+    assert _same_host("https://chaldal.com/p", None) is False
+
+
 # --------------------------------------------------------------------------- #
 # Error paths — 404s via empty fake session
 # --------------------------------------------------------------------------- #

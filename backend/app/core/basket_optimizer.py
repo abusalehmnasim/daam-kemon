@@ -217,8 +217,14 @@ def optimize(
         return OptimizationResult(best_single, [], 0.0, all_single)
 
     savings = best_single.total - best_split_total
-    if savings < min_split_savings_bdt or len(best_split) == 1:
-        # Single-store is good enough; don't bother the user with a split.
+    # Only apply the savings threshold when the single store actually fulfills the
+    # WHOLE basket. If best_single is partial (missing items), comparing its total
+    # against a complete split is apples-to-oranges — and suppressing the split
+    # would hide the only plan that buys everything the user wants.
+    if not best_single.missing_items and (savings < min_split_savings_bdt or len(best_split) == 1):
+        return OptimizationResult(best_single, [], 0.0, all_single)
+    if len(best_split) == 1:
+        # A one-store "split" isn't a split.
         return OptimizationResult(best_single, [], 0.0, all_single)
 
-    return OptimizationResult(best_single, best_split, savings, all_single)
+    return OptimizationResult(best_single, best_split, max(savings, 0.0), all_single)
