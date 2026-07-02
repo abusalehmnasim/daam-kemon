@@ -7,13 +7,17 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 function fmt(n: number) {
-  return "৳ " + n.toLocaleString("en-BD", { maximumFractionDigits: 2 });
+  return "৳" + Math.round(n).toLocaleString("en-US");
 }
 
+const QUICK_ADDS = [
+  { label: "5L Soybean Oil", q: "5L soybean oil" },
+  { label: "Miniket Rice 5kg", q: "miniket rice 5kg" },
+  { label: "Sugar 1kg", q: "sugar 1kg" },
+  { label: "12 Eggs", q: "12 eggs" },
+];
+
 function QtyInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
-  // Local text state so the user can clear/retype freely; clamp only on commit
-  // (blur/Enter), not on every keystroke — otherwise clearing snaps to 1 and
-  // typing "12" briefly commits 1 then 12.
   const [text, setText] = useState(String(value));
   useEffect(() => {
     setText(String(value));
@@ -34,38 +38,43 @@ function QtyInput({ value, onCommit }: { value: number; onCommit: (n: number) =>
       onKeyDown={(ev) => {
         if (ev.key === "Enter") ev.currentTarget.blur();
       }}
-      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+      aria-label="Quantity"
+      className="tnum w-14 rounded-md border border-line bg-card px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
     />
   );
 }
 
-function PlanCard({ plan, title }: { plan: StorePlanOut; title?: string }) {
+function PlanCard({ plan, best }: { plan: StorePlanOut; best?: boolean }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <header className="flex items-baseline justify-between mb-2">
-        <h3 className="font-semibold">
-          {title ? <span className="text-brand mr-2">{title}</span> : null}
+    <div className={`rounded-card border bg-card p-4 ${best ? "border-brand/40" : "border-line"}`}>
+      <header className="mb-2 flex items-baseline justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-ink">
+          {best && (
+            <span className="rounded bg-brand-weak px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-dark">
+              Best
+            </span>
+          )}
           {plan.store_display_name}
         </h3>
-        <div className="text-lg font-bold">{fmt(plan.total)}</div>
+        <div className="tnum text-[17px] font-semibold text-ink">{fmt(plan.total)}</div>
       </header>
-      <ul className="text-sm divide-y divide-gray-100">
+      <ul className="divide-y divide-line/60 text-sm">
         {plan.items.map((it) => (
-          <li key={it.item_key} className="flex justify-between py-1.5 gap-3">
-            <span className="truncate">
-              {it.label} <span className="text-xs text-gray-500">× {it.quantity}</span>
+          <li key={it.item_key} className="flex justify-between gap-3 py-1.5">
+            <span className="truncate text-muted">
+              {it.label} <span className="text-xs text-faint">× {it.quantity}</span>
             </span>
-            <span className="text-gray-700 shrink-0">{fmt(it.line_total)}</span>
+            <span className="tnum shrink-0 text-ink">{fmt(it.line_total)}</span>
           </li>
         ))}
       </ul>
-      <div className="text-xs text-gray-500 mt-2 flex justify-between">
-        <span>Items: {fmt(plan.items_subtotal)}</span>
-        <span>Delivery: {fmt(plan.delivery_fee)}</span>
+      <div className="mt-2 flex justify-between text-xs text-faint">
+        <span className="tnum">Items {fmt(plan.items_subtotal)}</span>
+        <span className="tnum">Delivery {fmt(plan.delivery_fee)}</span>
       </div>
       {plan.missing_items.length > 0 && (
-        <p className="text-xs text-amber-700 mt-2">
-          Missing at this store: {plan.missing_items.length} item(s)
+        <p className="mt-2 text-xs text-muted">
+          {plan.missing_items.length} item{plan.missing_items.length === 1 ? "" : "s"} not sold here
         </p>
       )}
     </div>
@@ -89,8 +98,6 @@ export default function BasketPage() {
       setResult(null);
       return;
     }
-    // Sequence guard: only the latest optimize call may update state, so a slow
-    // earlier response can't overwrite a newer one's totals.
     const seq = ++optimizeSeq.current;
     setLoading(true);
     setError(null);
@@ -110,31 +117,52 @@ export default function BasketPage() {
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 space-y-3">
-        <p className="text-gray-600">Your basket is empty.</p>
-        <Link href="/" className="inline-block px-4 py-2 rounded-md bg-brand text-white">
-          Start shopping
-        </Link>
+      <div className="mx-auto max-w-md py-12">
+        <h1 className="text-xl font-semibold tracking-tight text-ink">Your basket is empty</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted">
+          Add items as you search. Daam Kemon then finds the cheapest single store for your whole
+          list — and whether splitting across stores saves more, delivery fees included.
+        </p>
+        <div className="mt-5">
+          <Link
+            href="/"
+            className="inline-flex h-10 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-black"
+          >
+            Search products
+          </Link>
+        </div>
+        <p className="mt-6 text-xs font-medium uppercase tracking-wide text-faint">Popular</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {QUICK_ADDS.map((s) => (
+            <Link
+              key={s.q}
+              href={`/search?q=${encodeURIComponent(s.q)}`}
+              className="rounded-full border border-line bg-card px-3 py-1.5 text-[13px] text-muted transition-colors hover:border-line-strong hover:text-ink"
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Your basket</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">Your basket</h1>
 
-      <ul className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+      <ul className="divide-y divide-line/70 overflow-hidden rounded-card border border-line bg-card">
         {entries.map((e) => (
-          <li key={e.id} className="flex items-center justify-between p-3 gap-3">
+          <li key={e.id} className="flex items-center justify-between gap-3 p-3">
             <div className="min-w-0">
-              <p className="font-medium truncate">{e.label}</p>
-              {e.query && <p className="text-xs text-gray-500">query: {e.query}</p>}
+              <p className="truncate text-sm font-medium text-ink">{e.label}</p>
+              {e.query && <p className="text-xs text-faint">query: {e.query}</p>}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex shrink-0 items-center gap-3">
               <QtyInput value={e.quantity} onCommit={(n) => setEntries(setQuantity(e.id, n))} />
               <button
                 onClick={() => setEntries(remove(e.id))}
-                className="text-xs text-red-600 hover:underline"
+                className="text-xs text-muted transition-colors hover:text-ink"
               >
                 Remove
               </button>
@@ -143,28 +171,31 @@ export default function BasketPage() {
         ))}
       </ul>
 
-      {loading && <p className="text-sm text-gray-500">Optimizing…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <p className="text-sm text-faint">Optimizing…</p>}
+      {error && <p className="text-sm text-muted">Couldn&apos;t optimize the basket right now.</p>}
 
       {result?.unresolved_items && result.unresolved_items.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
-          We couldn&apos;t resolve: {result.unresolved_items.join(", ")}
+        <div className="rounded-card border border-line bg-card p-3 text-sm text-muted">
+          Not found for: {result.unresolved_items.join(", ")}
         </div>
       )}
 
       {result?.single_store && (
         <section className="space-y-3">
-          <h2 className="font-semibold text-lg">Cheapest single store</h2>
-          <PlanCard plan={result.single_store} title="Best" />
+          <h2 className="text-sm font-medium uppercase tracking-wide text-faint">
+            Cheapest single store
+          </h2>
+          <PlanCard plan={result.single_store} best />
         </section>
       )}
 
       {result && result.split.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-semibold text-lg">
-            Smart split — saves <span className="text-brand">{fmt(result.split_savings)}</span>
+          <h2 className="text-sm font-medium text-ink">
+            Split across stores saves{" "}
+            <span className="tnum text-brand">{fmt(result.split_savings)}</span>
           </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {result.split.map((p) => (
               <PlanCard key={p.store} plan={p} />
             ))}
@@ -174,8 +205,10 @@ export default function BasketPage() {
 
       {result && result.all_single_store.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-semibold text-lg">All stores compared</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-faint">
+            All stores compared
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-3">
             {result.all_single_store.map((p) => (
               <PlanCard key={p.store} plan={p} />
             ))}

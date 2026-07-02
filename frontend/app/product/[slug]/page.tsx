@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct } from "@/lib/server-api";
 import { parseProductId, productSlug } from "@/lib/slug";
-import type { ProductGroupOut } from "@/types";
+import type { ProductGroupOut, ProductOut } from "@/types";
 
 export const revalidate = 21600;
 
@@ -12,6 +12,24 @@ const CURRENCY = "BDT";
 
 function taka(n: number): string {
   return `৳${Math.round(n).toLocaleString("en-US")}`;
+}
+
+function unitBasis(p: ProductOut): { divisor: number; label: string } | null {
+  const v = p.size_value;
+  if (!v || v <= 0 || !p.size_unit) return null;
+  const u = p.size_unit.toUpperCase();
+  if (u === "L") return { divisor: v, label: "/L" };
+  if (u === "ML") return { divisor: v / 1000, label: "/L" };
+  if (u === "KG") return { divisor: v, label: "/kg" };
+  if (u === "G") return { divisor: v / 1000, label: "/kg" };
+  if (u === "PCS") return { divisor: v, label: p.category === "eggs" ? "/egg" : "/pc" };
+  return null;
+}
+
+function unitPrice(price: number, basis: { divisor: number; label: string }): string {
+  const val = price / basis.divisor;
+  const rounded = val >= 100 ? Math.round(val) : Math.round(val * 10) / 10;
+  return "৳" + rounded.toLocaleString("en-US") + basis.label;
 }
 
 async function load(slug: string): Promise<ProductGroupOut | null> {
@@ -52,6 +70,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   if (!group) notFound();
 
   const p = group.product;
+  const basis = unitBasis(p);
   const offerings = [...group.offerings].sort(
     (a, b) => Number(!a.in_stock) - Number(!b.in_stock) || a.price - b.price
   );
@@ -82,90 +101,107 @@ export default async function ProductPage({ params }: { params: { slug: string }
   };
 
   return (
-    <article>
+    <article className="mx-auto max-w-3xl">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          // Escape "<" so a product name containing "</script>" can't break out
-          // of the tag. JSON.stringify does not escape it; product names are
-          // vocabulary-derived today but this sink must defend itself.
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
 
-      <nav className="text-xs text-gray-500 mb-3">
-        <Link href="/" className="hover:underline">
+      <nav className="mb-4 text-xs text-faint">
+        <Link href="/" className="hover:text-ink">
           Home
         </Link>
-        <span className="mx-1">/</span>
-        <Link href="/categories" className="hover:underline">
+        <span className="mx-1.5">/</span>
+        <Link href="/categories" className="hover:text-ink">
           Categories
         </Link>
       </nav>
 
-      <h1 className="text-xl font-bold tracking-tight">{p.name} — price in Bangladesh</h1>
+      <h1 className="text-xl font-semibold tracking-tight text-ink">
+        {p.name} — price in Bangladesh
+      </h1>
       {low != null ? (
-        <p className="mt-1 text-sm text-gray-600">
-          From <span className="font-semibold text-brand">{taka(low)}</span> across{" "}
-          {offerings.length} {offerings.length === 1 ? "listing" : "listings"}
+        <p className="mt-1.5 text-[15px] text-muted">
+          From <span className="font-semibold text-brand">{taka(low)}</span>
+          {basis ? ` (${unitPrice(low, basis)})` : ""} across {offerings.length}{" "}
+          {offerings.length === 1 ? "listing" : "listings"}
           {group.cheapest_store ? `, cheapest at ${group.cheapest_store}` : ""}.
         </p>
       ) : (
-        <p className="mt-1 text-sm text-gray-600">Currently out of stock across tracked stores.</p>
+        <p className="mt-1.5 text-[15px] text-muted">
+          Currently out of stock across tracked stores.
+        </p>
       )}
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="text-left text-gray-500 border-b">
-              <th className="py-2 pr-3 font-medium">Store</th>
-              <th className="py-2 pr-3 font-medium">Listing</th>
-              <th className="py-2 pr-3 font-medium">Price</th>
-              <th className="py-2 pr-3 font-medium">Stock</th>
-              <th className="py-2 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {offerings.map((o, i) => {
-              const cheapest = o.in_stock && o.price === low;
-              return (
-                <tr key={o.store_product_id} className={i === 0 ? "" : "border-t"}>
-                  <td className="py-2 pr-3 font-medium">{o.store_display_name}</td>
-                  <td className="py-2 pr-3 text-gray-600">{o.name}</td>
-                  <td className="py-2 pr-3">
-                    <span className={cheapest ? "font-semibold text-brand" : ""}>
-                      {taka(o.price)}
+      <div className="mt-5 overflow-hidden rounded-card border border-line bg-card">
+        <div className="overflow-x-auto">
+          <div className="min-w-[560px]">
+            <div className="grid grid-cols-[8rem_minmax(0,1fr)_5.5rem_7rem_auto] items-center gap-x-3 border-b border-line px-4 py-2 text-[10px] uppercase tracking-wide text-faint">
+              <span>Store</span>
+              <span>Listing</span>
+              <span className="text-right">Unit</span>
+              <span className="text-right">Price</span>
+              <span />
+            </div>
+            <ul className="divide-y divide-line/60">
+              {offerings.map((o) => {
+                const cheapest = o.in_stock && o.price === low;
+                return (
+                  <li
+                    key={o.store_product_id}
+                    className={`grid grid-cols-[8rem_minmax(0,1fr)_5.5rem_7rem_auto] items-center gap-x-3 px-4 py-2.5 text-sm ${
+                      o.in_stock ? "" : "opacity-60"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {cheapest && (
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="truncate font-medium text-ink">{o.store_display_name}</span>
+                    </div>
+                    <span className="truncate text-muted">{o.name}</span>
+                    <span className="tnum text-right text-[13px] text-muted">
+                      {basis ? unitPrice(o.price, basis) : "—"}
                     </span>
-                    {o.original_price && o.original_price > o.price ? (
-                      <span className="ml-1 text-xs text-gray-400 line-through">
-                        {taka(o.original_price)}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-3 text-xs">
-                    {o.in_stock ? (
-                      <span className="text-green-700">In stock</span>
-                    ) : (
-                      <span className="text-gray-400">Out</span>
-                    )}
-                  </td>
-                  <td className="py-2">
+                    <div className="text-right">
+                      {o.in_stock ? (
+                        <span
+                          className={`tnum text-[15px] font-semibold ${
+                            cheapest ? "text-brand" : "text-ink"
+                          }`}
+                        >
+                          {taka(o.price)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-faint">Out of stock</span>
+                      )}
+                      {o.in_stock && o.original_price && o.original_price > o.price ? (
+                        <span className="tnum ml-1.5 text-xs text-faint line-through">
+                          {taka(o.original_price)}
+                        </span>
+                      ) : null}
+                    </div>
                     <a
                       href={`/api/click/${o.store_product_id}`}
                       rel="nofollow sponsored noopener"
-                      className="text-brand hover:underline"
+                      className="justify-self-end text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
                     >
                       Visit
                     </a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <p className="mt-6 text-xs text-gray-500">
+      <p className="mt-6 text-xs text-faint">
         Prices are collected automatically and may lag store changes. Daam Kemon is independent and
         not affiliated with the listed stores.
       </p>
