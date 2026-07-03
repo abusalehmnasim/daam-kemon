@@ -245,6 +245,29 @@ def test_products_sitemap(client):
     }
 
 
+def test_product_price_history(client):
+    from datetime import datetime, timezone
+
+    rows = [
+        SimpleNamespace(day=datetime(2026, 6, 1, tzinfo=timezone.utc), price=955),
+        SimpleNamespace(day=datetime(2026, 6, 14, tzinfo=timezone.utc), price=940),
+    ]
+    _use_session(FakeSession([FakeResult(rows=rows)]))
+
+    res = client.get("/products/7/history")
+    assert res.status_code == 200
+    body = res.json()
+    assert body == [
+        {"day": "2026-06-01", "price": 955.0},
+        {"day": "2026-06-14", "price": 940.0},
+    ]
+
+
+def test_product_price_history_bounds_days(client):
+    assert client.get("/products/7/history?days=1").status_code == 422
+    assert client.get("/products/7/history?days=9999").status_code == 422
+
+
 def test_get_product_found(client, monkeypatch):
     # The found path delegates aggregation to two search_service helpers that
     # issue their own pg_trgm queries — patch them so we test only the route's

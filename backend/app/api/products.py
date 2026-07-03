@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..models import Product
+from ..models import PriceHistory, Product, StoreProduct
 from ..schemas.product import ProductGroupOut, ProductOut
 from ..services.search_service import _build_group, _store_display_map
 
@@ -37,6 +39,36 @@ async def products_for_sitemap(session: AsyncSession = Depends(get_session)) -> 
         )
         for p in res.scalars().unique().all()
     ]
+
+
+class PricePointOut(BaseModel):
+    day: date
+    price: float  # cheapest price recorded that day, across all stores
+
+
+@router.get("/{product_id}/history", response_model=list[PricePointOut])
+async def product_price_history(
+    product_id: int,
+    days: int = Query(180, ge=7, le=730),
+    session: AsyncSession = Depends(get_session),
+) -> list[PricePointOut]:
+    """Cheapest recorded price per day for a canonical product.
+
+    Built from price_history, which appends a row whenever a listing's price
+    changes — so days without any change have no point. The UI connects the
+    points it gets; sparse early data fills in as the scraper accumulates."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    day = func.date_trunc("day", PriceHistory.observed_at).label("day")
+    stmt = (
+        select(day, func.min(PriceHistory.price).label("price"))
+        .join(StoreProduct, PriceHistory.store_product_id == StoreProduct.id)
+        .where(StoreProduct.product_id == product_id)
+        .where(PriceHistory.observed_at >= cutoff)
+        .group_by(day)
+        .order_by(day)
+    )
+    rows = (await session.execute(stmt)).all()
+    return [PricePointOut(day=r.day.date(), price=float(r.price)) for r in rows]
 
 
 @router.get("/{product_id}", response_model=ProductGroupOut)

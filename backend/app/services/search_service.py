@@ -196,6 +196,7 @@ def _aggregate_groups(canonical: list[ProductGroupOut], target_qty: float | None
             brand = p.brand or _brand_hint_from_name(off.name, p.category)
             bucket.offerings.append(AggregatedOffering(
                 store_product_id=off.store_product_id,
+                product_id=p.id,
                 store_name=off.store_name,
                 store_display_name=off.store_display_name,
                 brand=brand,

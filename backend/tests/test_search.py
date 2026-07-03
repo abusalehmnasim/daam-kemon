@@ -48,6 +48,13 @@ def test_get_base_unit_qty():
     assert get_base_unit_qty(None, "L") is None
 
 
+def test_aggregate_offerings_carry_product_id():
+    # Each aggregated offering must reference its canonical product so the UI
+    # can link the row to /product/[slug].
+    res = _aggregate_groups([_make_mock_group(42, "Oil 5L", 5.0, "L")], target_qty=None)
+    assert res[0].offerings[0].product_id == 42
+
+
 def test_aggregate_groups_sorting_without_target():
     # Setup groups with various sizes out of order
     groups = [

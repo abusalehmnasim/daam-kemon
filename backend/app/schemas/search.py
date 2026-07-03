@@ -14,6 +14,9 @@ class AggregatedOffering(BaseModel):
     of forcing the user to read the long store_product_name.
     """
     store_product_id: int
+    # Canonical product this offering is attached to — lets the UI link the row
+    # to its /product/[slug] page. Optional for backward compatibility.
+    product_id: Optional[int] = None
     store_name: str
     store_display_name: str
     brand: Optional[str] = None
