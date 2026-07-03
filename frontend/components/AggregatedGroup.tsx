@@ -61,6 +61,9 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
     [group.offerings]
   );
 
+  // Card thumbnail: first offering (cheapest-first) that has a scraped image.
+  const thumb = useMemo(() => rows.find((o) => o.image_url)?.image_url ?? null, [rows]);
+
   const handleAdd = (off: AggregatedOffering) => {
     addToBasket({
       query: group.display_name,
@@ -76,9 +79,25 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
 
   return (
     <article className="overflow-hidden rounded-card border border-line bg-card">
-      <header className="flex items-baseline justify-between gap-4 border-b border-line px-4 py-3">
-        <div className="min-w-0">
-          <h2 className="truncate text-[15px] font-semibold text-ink">{group.display_name}</h2>
+      <header className="flex items-center gap-3.5 border-b border-line px-4 py-3.5">
+        {thumb && (
+          <div className="hidden h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-white p-1 sm:flex">
+            {/* eslint-disable-next-line @next/next/no-img-element -- scraped store-CDN images span arbitrary domains */}
+            <img
+              src={thumb}
+              alt=""
+              width={48}
+              height={48}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
+            {group.display_name}
+          </h2>
           <p className="mt-0.5 text-xs text-faint">
             {group.offerings.length} offer{group.offerings.length === 1 ? "" : "s"} · {storeCount}{" "}
             store{storeCount === 1 ? "" : "s"}
@@ -87,7 +106,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         {group.cheapest_price != null && (
           <div className="shrink-0 text-right">
             <div className="text-[10px] uppercase tracking-wide text-faint">cheapest</div>
-            <div className="tnum text-[17px] font-semibold text-brand">
+            <div className="tnum text-lg font-semibold leading-tight text-brand">
               {taka(group.cheapest_price)}
             </div>
             {basis && (
@@ -118,7 +137,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
               return (
                 <li
                   key={o.store_product_id}
-                  className={`${cols} px-4 py-2.5 text-sm ${o.in_stock ? "" : "opacity-60"}`}
+                  className={`${cols} px-4 py-2.5 text-sm transition-colors hover:bg-line/40 ${o.in_stock ? "" : "opacity-60"}`}
                 >
                   <div className="flex min-w-0 items-center gap-1.5">
                     {isCheapest && (

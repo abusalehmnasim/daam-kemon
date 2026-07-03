@@ -89,14 +89,14 @@ function SearchInner() {
       )}
 
       {data && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted">
           {data.total_groups} {data.total_groups === 1 ? "match" : "matches"}
           {q ? <> for &ldquo;{q}&rdquo;</> : null}
         </div>
       )}
 
-      {loading && <p className="text-sm text-gray-500">Searching…</p>}
-      {error && <p className="text-sm text-red-600">Search failed: {error}</p>}
+      {loading && <p className="text-sm text-faint">Searching…</p>}
+      {error && <p className="text-sm text-muted">Search failed. Please try again.</p>}
 
       <div className="grid gap-3">
         {data?.groups.map((g, i) => (
@@ -106,17 +106,14 @@ function SearchInner() {
           />
         ))}
         {data && data.groups.length === 0 && !loading && (
-          <div className="text-sm text-gray-500 space-y-2">
-            <p>No matches.</p>
-            {categoryKey && (
-              <p>
-                This category may not have any scraped listings yet.{" "}
-                <Link href="/categories" className="text-brand underline">
-                  Browse other categories
-                </Link>
-                .
-              </p>
-            )}
+          <div className="space-y-2 rounded-card border border-line bg-card px-4 py-8 text-center text-sm text-muted">
+            <p className="font-medium text-ink">No matches found</p>
+            <p className="text-faint">
+              Nothing tracked for this yet.{" "}
+              <Link href="/categories" className="text-ink underline underline-offset-2">
+                Browse categories
+              </Link>
+            </p>
           </div>
         )}
       </div>
@@ -150,7 +147,7 @@ function ActiveFilters({
       {(category || subcategoryKey) && (
         <Link
           href={q ? `/search?q=${encodeURIComponent(q)}` : "/categories"}
-          className="text-xs text-gray-500 underline hover:text-brand"
+          className="text-xs text-faint underline underline-offset-2 hover:text-ink"
         >
           clear all
         </Link>
@@ -161,9 +158,13 @@ function ActiveFilters({
 
 function FilterChip({ label, removeHref }: { label: string; removeHref: string }) {
   return (
-    <span className="inline-flex items-center gap-1 bg-brand/10 text-brand px-2 py-1 rounded-full text-xs">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-white">
       {label}
-      <Link href={removeHref} className="hover:text-brand-dark" aria-label={`Remove ${label}`}>
+      <Link
+        href={removeHref}
+        className="text-white/70 hover:text-white"
+        aria-label={`Remove ${label}`}
+      >
         ×
       </Link>
     </span>
@@ -181,11 +182,13 @@ function SubcategoryStrip({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="text-gray-500">Narrow by:</span>
+      <span className="text-faint">Narrow by:</span>
       <Link
         href={buildHref({ subcategory: null })}
-        className={`px-2 py-1 rounded-full border ${
-          !activeKey ? "border-brand text-brand bg-brand/10" : "border-gray-200 hover:border-brand"
+        className={`rounded-full border px-2.5 py-1 transition-colors ${
+          !activeKey
+            ? "border-ink bg-ink text-white"
+            : "border-line text-muted hover:border-line-strong hover:text-ink"
         }`}
       >
         All
@@ -194,10 +197,10 @@ function SubcategoryStrip({
         <Link
           key={sc.key}
           href={buildHref({ subcategory: sc.key })}
-          className={`px-2 py-1 rounded-full border ${
+          className={`rounded-full border px-2.5 py-1 transition-colors ${
             activeKey === sc.key
-              ? "border-brand text-brand bg-brand/10"
-              : "border-gray-200 hover:border-brand"
+              ? "border-ink bg-ink text-white"
+              : "border-line text-muted hover:border-line-strong hover:text-ink"
           }`}
         >
           {sc.display}
@@ -209,7 +212,7 @@ function SubcategoryStrip({
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-gray-500">Loading…</p>}>
+    <Suspense fallback={<p className="text-sm text-faint">Loading…</p>}>
       <SearchInner />
     </Suspense>
   );
