@@ -81,11 +81,15 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const prices = inStock.map((o) => o.price);
   const low = prices.length ? Math.min(...prices) : null;
   const high = prices.length ? Math.max(...prices) : null;
+  // Product image from the cheapest offering that has one (offerings are sorted
+  // in-stock + cheapest first). Scraped store-CDN URLs across many domains.
+  const image = offerings.find((o) => o.image_url)?.image_url ?? null;
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: p.name,
+    ...(image ? { image: [image] } : {}),
     ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
     ...(low != null
       ? {
@@ -122,24 +126,41 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </Link>
       </nav>
 
-      <h1 className="text-xl font-semibold tracking-tight text-ink">
-        {p.name} — price in Bangladesh
-      </h1>
-      {low != null ? (
-        <p className="mt-1.5 text-[15px] text-muted">
-          From <span className="font-semibold text-brand">{taka(low)}</span>
-          {basis ? ` (${unitPrice(low, basis)})` : ""} across {offerings.length}{" "}
-          {offerings.length === 1 ? "listing" : "listings"}
-          {group.cheapest_store ? `, cheapest at ${group.cheapest_store}` : ""}.
-        </p>
-      ) : (
-        <p className="mt-1.5 text-[15px] text-muted">
-          Currently out of stock across tracked stores.
-        </p>
-      )}
-
-      <div className="mt-4">
-        <AddToBasket productId={p.id} label={p.name} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {image && (
+          <div className="shrink-0 self-start rounded-card border border-line bg-white p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- scraped store-CDN images span arbitrary domains; next/image remotePatterns would need constant maintenance */}
+            <img
+              src={image}
+              alt={p.name}
+              width={112}
+              height={112}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="h-28 w-28 object-contain"
+            />
+          </div>
+        )}
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">
+            {p.name} — price in Bangladesh
+          </h1>
+          {low != null ? (
+            <p className="mt-1.5 text-[15px] text-muted">
+              From <span className="font-semibold text-brand">{taka(low)}</span>
+              {basis ? ` (${unitPrice(low, basis)})` : ""} across {offerings.length}{" "}
+              {offerings.length === 1 ? "listing" : "listings"}
+              {group.cheapest_store ? `, cheapest at ${group.cheapest_store}` : ""}.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[15px] text-muted">
+              Currently out of stock across tracked stores.
+            </p>
+          )}
+          <div className="mt-4">
+            <AddToBasket productId={p.id} label={p.name} />
+          </div>
+        </div>
       </div>
 
       {history.length >= 2 && (
