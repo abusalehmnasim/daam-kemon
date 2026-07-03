@@ -31,6 +31,20 @@ export function getProduct(id: number): Promise<ProductGroupOut | null> {
   return serverFetch<ProductGroupOut>(`/products/${id}`);
 }
 
+export interface PricePoint {
+  day: string; // ISO date
+  price: number; // cheapest recorded that day
+}
+
+export async function getProductHistory(id: number): Promise<PricePoint[]> {
+  // History is enrichment — a failure should never break the product page.
+  try {
+    return (await serverFetch<PricePoint[]>(`/products/${id}/history`)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export interface ProductSlugData {
   id: number;
   name: string;

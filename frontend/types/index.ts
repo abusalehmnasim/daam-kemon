@@ -35,6 +35,7 @@ export interface ProductGroupOut {
 
 export interface AggregatedOffering {
   store_product_id: number;
+  product_id: number | null;
   store_name: string;
   store_display_name: string;
   brand: string | null;

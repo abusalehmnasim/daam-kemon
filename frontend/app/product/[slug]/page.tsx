@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProduct } from "@/lib/server-api";
+import { AddToBasket } from "@/components/AddToBasket";
+import { PriceSparkline } from "@/components/PriceSparkline";
+import { getProduct, getProductHistory } from "@/lib/server-api";
 import { parseProductId, productSlug } from "@/lib/slug";
 import type { ProductGroupOut, ProductOut } from "@/types";
 
@@ -70,6 +72,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   if (!group) notFound();
 
   const p = group.product;
+  const history = await getProductHistory(p.id);
   const basis = unitBasis(p);
   const offerings = [...group.offerings].sort(
     (a, b) => Number(!a.in_stock) - Number(!b.in_stock) || a.price - b.price
@@ -133,6 +136,16 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <p className="mt-1.5 text-[15px] text-muted">
           Currently out of stock across tracked stores.
         </p>
+      )}
+
+      <div className="mt-4">
+        <AddToBasket productId={p.id} label={p.name} />
+      </div>
+
+      {history.length >= 2 && (
+        <div className="mt-5">
+          <PriceSparkline points={history} />
+        </div>
       )}
 
       <div className="mt-5 overflow-hidden rounded-card border border-line bg-card">

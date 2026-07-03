@@ -3,6 +3,8 @@
 import type { AggregatedGroup, AggregatedOffering } from "@/types";
 import { api } from "@/lib/api";
 import { add as addToBasket } from "@/lib/basketStore";
+import { productSlug } from "@/lib/slug";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 function taka(n: number | null | undefined): string {
@@ -130,7 +132,17 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
 
                   <div className="flex min-w-0 items-center gap-1.5">
                     {o.brand && <span className="shrink-0 capitalize text-ink">{o.brand}</span>}
-                    <span className="truncate text-muted">{o.store_product_name}</span>
+                    {o.product_id != null ? (
+                      <Link
+                        href={`/product/${productSlug({ id: o.product_id, name: o.product_name })}`}
+                        className="truncate text-muted underline-offset-2 hover:text-ink hover:underline"
+                        title={`See all prices for ${o.product_name}`}
+                      >
+                        {o.store_product_name}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-muted">{o.store_product_name}</span>
+                    )}
                     {o.is_sponsored && (
                       <span className="shrink-0 rounded bg-line/70 px-1 py-px text-[10px] text-muted">
                         ad
