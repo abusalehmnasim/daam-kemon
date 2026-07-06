@@ -1,7 +1,7 @@
 # Daam Kemon
 
-> A grocery price intelligence engine for Bangladesh. Live-scrapes Chaldal,
-> Shwapno and Othoba every 6 hours, normalizes messy Bangla+English listings
+> A grocery price intelligence engine for Bangladesh. Scrapes Chaldal,
+> Shwapno, Othoba, Unimart and Daraz daily, normalizes messy Bangla+English listings
 > into a canonical catalog using a tiered confidence-scoring matcher, then
 > aggregates by **(oil type + size)** so a shopper sees `5L Soybean Oil` as one
 > row across every brand and every store — sorted cheapest first.
@@ -83,12 +83,18 @@ solves the actual problem:
                               ▲                    └────────────┘
                               │                          ▲
                    ┌──────────────────────┐              │
-                   │  scheduler (every 6h)│──────────────┘
-                   │  ├ chaldal           │
-                   │  ├ shwapno           │   normalize → match
+                   │  daily scrape (CI)   │──────────────┘
+                   │  ├ chaldal  ├ unimart│
+                   │  ├ shwapno  └ daraz  │   normalize → match
                    │  └ othoba            │   → upsert + history
                    └──────────────────────┘
 ```
+
+Production scraping runs **once a day** via a GitHub Actions cron
+(`.github/workflows/scrape.yml`, 01:00 UTC), which writes straight to the
+production database. The in-repo APScheduler (`backend/scrapers/scheduler.py`,
+every `SCRAPE_INTERVAL_HOURS`, default 6h) is the **local / self-hosted** data
+path and is disabled on the hosted deployment (`ENABLE_SCHEDULER=false`).
 
 The interesting code:
 
@@ -99,7 +105,7 @@ The interesting code:
 | `backend/app/core/basket_optimizer.py` | Brute-force optimal split over `2^N − 1` store subsets, with tiered delivery fees |
 | `backend/app/services/search_service.py` | Search + per-(subcategory, size) bucket aggregation |
 | `backend/scrapers/{chaldal,shwapno,othoba}.py` | Per-store scrapers, selectors as constants |
-| `backend/scrapers/scheduler.py` | APScheduler container — every 6h scrape, daily stale-listing cleanup |
+| `backend/scrapers/scheduler.py` | APScheduler container for local/self-host — every 6h scrape, daily stale-listing cleanup (disabled in the hosted deploy; production scrapes daily via GitHub Actions) |
 
 ---
 
@@ -308,8 +314,11 @@ Scaffolding only; full attribution and billing belong in a separate service.
   and tested; embeddings would help for niche categories where the brand
   vocabulary is sparse.
 - **Catalog admin UI** for manual product merges.
-- **Scheduled deploy** (Railway / Fly / Render) — docker-compose covers local
-  dev; production needs managed Postgres + a managed scheduler container.
+- **Sub-daily refresh** — production currently scrapes once a day (GitHub
+  Actions cron → managed Postgres on Supabase; API on Render, frontend on
+  Vercel). docker-compose covers local dev, where the APScheduler container can
+  run every 6h. Tightening the hosted cadence below daily would mean more CI
+  minutes and more load on the stores — a deliberate trade, not a gap.
 
 ---
 
