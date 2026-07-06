@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import time
 from typing import Optional
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.categories import CATEGORIES, find_brand
@@ -16,10 +17,30 @@ from ..schemas.search import AggregatedGroup, AggregatedOffering
 # Trigram similarity threshold for "fuzzy text matches the user's query"
 TRGM_THRESHOLD = 0.15
 
+# The store roster is ~5 rows and effectively static, but the DB sits in another
+# region, so fetching it on every search costs a full cross-region round-trip.
+# Cache it in-process; display names are cosmetic, so brief staleness is fine.
+_STORE_DISPLAY_TTL_S = 600.0
+_store_display_cache: dict[str, str] | None = None
+_store_display_cached_at: float = 0.0
+
+
+def reset_store_display_cache() -> None:
+    """Clear the in-process store-display cache (used by tests)."""
+    global _store_display_cache, _store_display_cached_at
+    _store_display_cache = None
+    _store_display_cached_at = 0.0
+
 
 async def _store_display_map(session: AsyncSession) -> dict[str, str]:
+    global _store_display_cache, _store_display_cached_at
+    now = time.monotonic()
+    if _store_display_cache is not None and (now - _store_display_cached_at) < _STORE_DISPLAY_TTL_S:
+        return _store_display_cache
     res = await session.execute(select(Store.name, Store.display_name))
-    return {n: d for n, d in res.all()}
+    _store_display_cache = {n: d for n, d in res.all()}
+    _store_display_cached_at = now
+    return _store_display_cache
 
 
 def _build_offering(sp: StoreProduct, store_display: str) -> StoreOfferingOut:
@@ -112,22 +133,26 @@ async def search(
         result = await session.execute(stmt)
         products = list(result.scalars().unique().all())
     elif query.strip():
-        # Pure trigram fallback against normalized_name (no filter, no parsed category)
-        stmt = text(
-            """
-            SELECT id FROM products
-            WHERE similarity(normalized_name, :q) > :thr
-               OR similarity(name, :q) > :thr
-            ORDER BY GREATEST(similarity(normalized_name, :q), similarity(name, :q)) DESC
-            LIMIT :lim
-            """
+        # Pure trigram fallback against normalized_name/name (no filter, no parsed
+        # category). Select the Product rows directly, ordered by similarity — a
+        # single query, instead of fetching ids and re-fetching rows by id (which
+        # was a second serial cross-region round-trip per search).
+        q = np.normalized_name or query.lower()
+        # The `%` operator can use the GIN gin_trgm_ops indexes on
+        # normalized_name/name (a `similarity() > x` predicate cannot — it forces
+        # a seq scan). Its match threshold is the connection GUC set in
+        # database.py (pg_trgm.similarity_threshold = TRGM_THRESHOLD). Rank the
+        # matched rows by best similarity across the two columns.
+        sim_norm = func.similarity(Product.normalized_name, q)
+        sim_name = func.similarity(Product.name, q)
+        stmt = (
+            select(Product)
+            .where(Product.normalized_name.bool_op("%")(q) | Product.name.bool_op("%")(q))
+            .order_by(func.greatest(sim_norm, sim_name).desc())
+            .limit(limit)
         )
-        rows = (await session.execute(stmt, {"q": np.normalized_name or query.lower(), "thr": TRGM_THRESHOLD, "lim": limit})).all()
-        if rows:
-            ids = [r[0] for r in rows]
-            res2 = await session.execute(select(Product).where(Product.id.in_(ids)))
-            by_id = {p.id: p for p in res2.scalars().unique().all()}
-            products = [by_id[i] for i in ids if i in by_id]
+        result = await session.execute(stmt)
+        products = list(result.scalars().unique().all())
 
     canonical = [await _build_group(session, p, store_display) for p in products]
     canonical = [g for g in canonical if g.offerings]
