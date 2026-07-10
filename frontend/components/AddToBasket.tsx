@@ -14,7 +14,7 @@ export function AddToBasket({ productId, label }: { productId: number; label: st
         setAdded(true);
         setTimeout(() => setAdded(false), 1500);
       }}
-      className="inline-flex h-9 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-black"
+      className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
     >
       {added ? "Added ✓" : "Add to basket"}
     </button>

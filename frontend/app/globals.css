@@ -13,9 +13,11 @@ html {
 body {
   background: #f5f4f0;
   color: #1a1b1d;
-  font-family: var(--font-sans), var(--font-bengali), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Bengali conjuncts + matra need more vertical room than Latin. */
+  line-height: 1.6;
 }
 
 /* Prices and any aligned figures use tabular numerals so columns line up. */
@@ -23,12 +25,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* One considered focus style everywhere. */
+/* One considered focus style everywhere — coral to match the brand. */
 :focus-visible {
-  outline: 2px solid #0e7a46;
+  outline: 2px solid #cf4e2b;
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #d7ebdd;
+  background: #fce0d3;
 }

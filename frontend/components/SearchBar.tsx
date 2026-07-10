@@ -33,7 +33,7 @@ export function SearchBar({
       />
       <button
         type="submit"
-        className="h-11 rounded-lg bg-ink px-5 text-sm font-medium text-white transition-colors hover:bg-black focus-visible:outline-offset-2"
+        className="h-11 rounded-lg bg-brand px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark focus-visible:outline-offset-2"
       >
         Search
       </button>

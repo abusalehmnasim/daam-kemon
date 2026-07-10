@@ -147,7 +147,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </h1>
           {low != null ? (
             <p className="mt-1.5 text-[15px] text-muted">
-              From <span className="font-semibold text-brand">{taka(low)}</span>
+              From <span className="font-semibold text-save">{taka(low)}</span>
               {basis ? ` (${unitPrice(low, basis)})` : ""} across {offerings.length}{" "}
               {offerings.length === 1 ? "listing" : "listings"}
               {group.cheapest_store ? `, cheapest at ${group.cheapest_store}` : ""}.
@@ -169,70 +169,69 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
       )}
 
+      {/* Mobile-first rows: no horizontal scroll, no fixed columns. */}
       <div className="mt-5 overflow-hidden rounded-card border border-line bg-card">
-        <div className="overflow-x-auto">
-          <div className="min-w-[560px]">
-            <div className="grid grid-cols-[8rem_minmax(0,1fr)_5.5rem_7rem_auto] items-center gap-x-3 border-b border-line px-4 py-2 text-[10px] uppercase tracking-wide text-faint">
-              <span>Store</span>
-              <span>Listing</span>
-              <span className="text-right">Unit</span>
-              <span className="text-right">Price</span>
-              <span />
-            </div>
-            <ul className="divide-y divide-line/60">
-              {offerings.map((o) => {
-                const cheapest = o.in_stock && o.price === low;
-                return (
-                  <li
-                    key={o.store_product_id}
-                    className={`grid grid-cols-[8rem_minmax(0,1fr)_5.5rem_7rem_auto] items-center gap-x-3 px-4 py-2.5 text-sm ${
-                      o.in_stock ? "" : "opacity-60"
-                    }`}
-                  >
-                    <div className="flex min-w-0 items-center gap-1.5">
+        <ul className="divide-y divide-line/60">
+          {offerings.map((o) => {
+            const cheapest = o.in_stock && o.price === low;
+            return (
+              <li
+                key={o.store_product_id}
+                className={`px-4 py-3 text-sm ${cheapest ? "bg-save-weak/60" : ""} ${
+                  o.in_stock ? "" : "opacity-60"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {cheapest && (
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
-                          aria-hidden="true"
-                        />
+                        <span className="shrink-0 rounded-full bg-save px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                          Cheapest
+                        </span>
                       )}
                       <span className="truncate font-medium text-ink">{o.store_display_name}</span>
                     </div>
-                    <span className="truncate text-muted">{o.name}</span>
-                    <span className="tnum text-right text-[13px] text-muted">
-                      {basis ? unitPrice(o.price, basis) : "—"}
-                    </span>
-                    <div className="text-right">
-                      {o.in_stock ? (
-                        <span
-                          className={`tnum text-[15px] font-semibold ${
-                            cheapest ? "text-brand" : "text-ink"
+                    <p className="mt-0.5 truncate text-xs text-muted">{o.name}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {o.in_stock ? (
+                      <>
+                        <div
+                          className={`tnum text-[15px] font-semibold leading-tight ${
+                            cheapest ? "text-save" : "text-ink"
                           }`}
                         >
                           {taka(o.price)}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-faint">Out of stock</span>
-                      )}
-                      {o.in_stock && o.original_price && o.original_price > o.price ? (
-                        <span className="tnum ml-1.5 text-xs text-faint line-through">
-                          {taka(o.original_price)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <a
-                      href={`/api/click/${o.store_product_id}`}
-                      rel="nofollow sponsored noopener"
-                      className="justify-self-end text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
-                    >
-                      Visit
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
+                        </div>
+                        {o.original_price && o.original_price > o.price ? (
+                          <div className="tnum text-xs text-faint line-through">
+                            {taka(o.original_price)}
+                          </div>
+                        ) : null}
+                        {basis && (
+                          <div className="tnum text-[11px] text-muted">
+                            {unitPrice(o.price, basis)}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-faint">Out of stock</span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <a
+                    href={`/api/click/${o.store_product_id}`}
+                    rel="nofollow sponsored noopener"
+                    className="inline-flex h-9 items-center px-2 text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
+                  >
+                    Visit
+                  </a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <p className="mt-6 text-xs text-faint">

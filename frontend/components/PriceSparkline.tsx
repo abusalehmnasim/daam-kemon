@@ -48,8 +48,8 @@ export function PriceSparkline({ points }: { points: PricePoint[] }) {
         role="img"
         aria-label={`Price history: lowest ${taka(min)}, highest ${taka(max)}, latest ${taka(last.price)}`}
       >
-        <path d={path} fill="none" stroke="#0E7A46" strokeWidth="1.5" strokeLinejoin="round" />
-        <circle cx={x(minIdx)} cy={y(min)} r="3" fill="#0E7A46" />
+        <path d={path} fill="none" stroke="#0E7C59" strokeWidth="1.5" strokeLinejoin="round" />
+        <circle cx={x(minIdx)} cy={y(min)} r="3" fill="#0E7C59" />
       </svg>
       <div className="mt-1 flex justify-between text-[11px] text-faint">
         <span>{fmtDate(points[0].day)}</span>
