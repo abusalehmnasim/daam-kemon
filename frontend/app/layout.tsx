@@ -1,14 +1,20 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { Hind_Siliguri, Anek_Bangla } from "next/font/google";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const bengali = Noto_Sans_Bengali({
-  subsets: ["bengali"],
-  weight: ["400", "500", "600"],
-  variable: "--font-bengali",
+// One bilingual UI/body family — renders Bengali + Latin from a single file.
+const sans = Hind_Siliguri({
+  subsets: ["bengali", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+// Warm, brand-forward display type — wordmark only.
+const display = Anek_Bangla({
+  subsets: ["bengali", "latin"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -21,15 +27,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${bengali.variable}`}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body>
         <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
             <Link
               href="/"
-              className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-ink"
+              className="flex items-center gap-2 font-display text-[17px] font-bold tracking-tight text-ink"
             >
-              <span className="h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
+              <span className="h-2 w-2 rounded-full bg-brand-bright" aria-hidden="true" />
               Daam Kemon
             </Link>
             <SiteNav />

@@ -46,11 +46,11 @@ function QtyInput({ value, onCommit }: { value: number; onCommit: (n: number) =>
 
 function PlanCard({ plan, best }: { plan: StorePlanOut; best?: boolean }) {
   return (
-    <div className={`rounded-card border bg-card p-4 ${best ? "border-brand/40" : "border-line"}`}>
+    <div className={`rounded-card border bg-card p-4 ${best ? "border-save/40" : "border-line"}`}>
       <header className="mb-2 flex items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-medium text-ink">
           {best && (
-            <span className="rounded bg-brand-weak px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-dark">
+            <span className="rounded bg-save-weak px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-save-dark">
               Best
             </span>
           )}
@@ -126,7 +126,7 @@ export default function BasketPage() {
         <div className="mt-5">
           <Link
             href="/"
-            className="inline-flex h-10 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-black"
+            className="inline-flex h-10 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
           >
             Search products
           </Link>
@@ -193,7 +193,7 @@ export default function BasketPage() {
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-ink">
             Split across stores saves{" "}
-            <span className="tnum text-brand">{fmt(result.split_savings)}</span>
+            <span className="tnum text-save">{fmt(result.split_savings)}</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {result.split.map((p) => (

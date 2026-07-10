@@ -74,9 +74,6 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
     setTimeout(() => setAddedKey(null), 1400);
   };
 
-  const cols =
-    "grid grid-cols-[7.5rem_minmax(0,1fr)_5.5rem_auto] sm:grid-cols-[8.5rem_minmax(0,1fr)_5.5rem_7rem_auto_auto] items-center gap-x-3";
-
   return (
     <article className="overflow-hidden rounded-card border border-line bg-card">
       <header className="flex items-center gap-3.5 border-b border-line px-4 py-3.5">
@@ -106,7 +103,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         {group.cheapest_price != null && (
           <div className="shrink-0 text-right">
             <div className="text-[10px] uppercase tracking-wide text-faint">cheapest</div>
-            <div className="tnum text-lg font-semibold leading-tight text-brand">
+            <div className="tnum text-lg font-semibold leading-tight text-save">
               {taka(group.cheapest_price)}
             </div>
             {basis && (
@@ -118,50 +115,28 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         )}
       </header>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[600px]">
-          <div
-            className={`${cols} border-b border-line/70 px-4 py-1.5 text-[10px] uppercase tracking-wide text-faint`}
-          >
-            <span>Store</span>
-            <span>Product</span>
-            <span className="text-right">Unit</span>
-            <span className="hidden text-right sm:block">Price</span>
-            <span className="hidden sm:block" />
-            <span className="hidden sm:block" />
-          </div>
-
-          <ul className="divide-y divide-line/60">
-            {rows.map((o) => {
-              const isCheapest = o.in_stock && o.price === group.cheapest_price;
-              return (
-                <li
-                  key={o.store_product_id}
-                  className={`${cols} px-4 py-2.5 text-sm transition-colors hover:bg-line/40 ${o.in_stock ? "" : "opacity-60"}`}
-                >
-                  <div className="flex min-w-0 items-center gap-1.5">
+      {/* Mobile-first rows: no horizontal scroll, no fixed columns. Each row
+          surfaces store · price · unit price · savings up front; brand,
+          match confidence and actions wrap below on narrow screens. */}
+      <ul className="divide-y divide-line/60">
+        {rows.map((o) => {
+          const isCheapest = o.in_stock && o.price === group.cheapest_price;
+          return (
+            <li
+              key={o.store_product_id}
+              className={`px-4 py-3 text-sm transition-colors ${
+                isCheapest ? "bg-save-weak/60" : "hover:bg-line/40"
+              } ${o.in_stock ? "" : "opacity-60"}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {isCheapest && (
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
-                        aria-hidden="true"
-                      />
+                      <span className="shrink-0 rounded-full bg-save px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        Cheapest
+                      </span>
                     )}
                     <span className="truncate font-medium text-ink">{o.store_display_name}</span>
-                  </div>
-
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    {o.brand && <span className="shrink-0 capitalize text-ink">{o.brand}</span>}
-                    {o.product_id != null ? (
-                      <Link
-                        href={`/product/${productSlug({ id: o.product_id, name: o.product_name })}`}
-                        className="truncate text-muted underline-offset-2 hover:text-ink hover:underline"
-                        title={`See all prices for ${o.product_name}`}
-                      >
-                        {o.store_product_name}
-                      </Link>
-                    ) : (
-                      <span className="truncate text-muted">{o.store_product_name}</span>
-                    )}
                     {o.is_sponsored && (
                       <span className="shrink-0 rounded bg-line/70 px-1 py-px text-[10px] text-muted">
                         ad
@@ -169,59 +144,71 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                     )}
                     <ConfidenceTag confidence={o.match_confidence} />
                   </div>
-
-                  <div className="tnum text-right text-[13px] text-muted">
-                    {basis ? unitPrice(o.price, basis) : "—"}
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                    {o.brand && <span className="shrink-0 capitalize text-ink/80">{o.brand}</span>}
+                    {o.product_id != null ? (
+                      <Link
+                        href={`/product/${productSlug({ id: o.product_id, name: o.product_name })}`}
+                        className="truncate underline-offset-2 hover:text-ink hover:underline"
+                        title={`See all prices for ${o.product_name}`}
+                      >
+                        {o.store_product_name}
+                      </Link>
+                    ) : (
+                      <span className="truncate">{o.store_product_name}</span>
+                    )}
                   </div>
+                </div>
 
-                  <div className="hidden text-right sm:block">
-                    {o.in_stock ? (
-                      <span
-                        className={`tnum text-[15px] font-semibold ${
-                          isCheapest ? "text-brand" : "text-ink"
+                <div className="shrink-0 text-right">
+                  {o.in_stock ? (
+                    <>
+                      <div
+                        className={`tnum text-[15px] font-semibold leading-tight ${
+                          isCheapest ? "text-save" : "text-ink"
                         }`}
                       >
                         {taka(o.price)}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-faint">Out of stock</span>
-                    )}
-                    {o.in_stock && o.original_price && o.original_price > o.price && (
-                      <span className="tnum ml-1.5 text-xs text-faint line-through">
-                        {taka(o.original_price)}
-                      </span>
-                    )}
-                  </div>
+                      </div>
+                      {o.original_price && o.original_price > o.price && (
+                        <div className="tnum text-xs text-faint line-through">
+                          {taka(o.original_price)}
+                        </div>
+                      )}
+                      {basis && (
+                        <div className="tnum text-[11px] text-muted">
+                          {unitPrice(o.price, basis)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-faint">Out of stock</span>
+                  )}
+                </div>
+              </div>
 
-                  <div className="hidden justify-self-end sm:block">
-                    {o.in_stock ? (
-                      <button
-                        onClick={() => handleAdd(o)}
-                        className="rounded-md border border-line px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:border-line-strong hover:bg-line/50"
-                      >
-                        {addedKey === `${o.store_product_id}` ? "Added ✓" : "Add"}
-                      </button>
-                    ) : (
-                      <span className="block w-[3.25rem]" />
-                    )}
-                  </div>
-
-                  <div className="justify-self-end">
-                    <a
-                      href={api.clickUrl(o.store_product_id)}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      className="text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
-                    >
-                      Visit
-                    </a>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
+              <div className="mt-2 flex items-center justify-end gap-2">
+                {o.in_stock && (
+                  <button
+                    onClick={() => handleAdd(o)}
+                    className="h-9 rounded-md border border-line px-3 text-xs font-medium text-ink transition-colors hover:border-line-strong hover:bg-line/50"
+                  >
+                    {addedKey === `${o.store_product_id}` ? "Added ✓" : "Add"}
+                  </button>
+                )}
+                <a
+                  href={api.clickUrl(o.store_product_id)}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="inline-flex h-9 items-center px-2 text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
+                >
+                  Visit
+                </a>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </article>
   );
 }
