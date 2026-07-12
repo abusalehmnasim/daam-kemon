@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.categories import CATEGORIES, find_brand
+from ..core.categories import CATEGORIES, find_brand, find_category_by_exact_name
 from ..core.normalizer import normalize
 from ..models import Product, Store, StoreProduct
 from ..schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
@@ -79,7 +79,14 @@ async def search(
     np = normalize(query)
     store_display = await _store_display_map(session)
 
-    effective_category = category_filter or np.category
+    # A bare category name ("milk", "chicken") often can't resolve via the
+    # normalizer's keyword scoring — many categories deliberately omit their
+    # own name from `keywords` to avoid out-scoring a narrower category on
+    # real product listings (see find_category_by_exact_name docstring).
+    # An exact full-string match against the category key is safe here
+    # because it can't fire on a longer product name the way adding the
+    # word to `keywords` would.
+    effective_category = category_filter or np.category or find_category_by_exact_name(query)
     effective_subcategory = subcategory_filter or np.subcategory
     products: list[Product] = []
 

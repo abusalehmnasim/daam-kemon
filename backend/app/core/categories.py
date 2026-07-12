@@ -1331,6 +1331,24 @@ def find_category(text_lower: str) -> str | None:
     return best
 
 
+def find_category_by_exact_name(query: str) -> str | None:
+    """Resolve a query that IS a category name, for search only — never used
+    by the normalizer/ingest path.
+
+    Many categories deliberately omit their own bare name from `keywords`
+    per the collision discipline above (e.g. "chicken" would out-score
+    "eggs" on "Kazi Farms Chicken Egg 12pcs"), so a plain search for e.g.
+    "milk" or "chicken" doesn't resolve via `find_category`. Matching on
+    the FULL, exact query string against the category key sidesteps that:
+    it can't collide with a longer product name the way adding the word to
+    `keywords` would (`find_category("cadbury dairy milk chocolate")` would
+    misfire on a bare "milk" keyword; this function only fires when the
+    query IS "milk", not when it merely contains it).
+    """
+    key = query.strip().lower().replace("-", " ").replace(" ", "_")
+    return key if key in CATEGORIES else None
+
+
 def find_subcategory(category: str, text_lower: str) -> str | None:
     cfg = CATEGORIES.get(category)
     if not cfg:

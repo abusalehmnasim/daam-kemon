@@ -120,6 +120,15 @@ class AgoraScraper(StoreScraper):
         "noodles":       ("NOODLE", "MAGGI"),
     }
 
+    # Word-boundary patterns for CATEGORY_KEYWORDS, precompiled once. Plain
+    # substring matching let short keywords false-match inside unrelated
+    # words — e.g. detergent's "SURF" (the brand) matching inside "SURFACE"
+    # ("Multi Surface Cleaner"), or lentils' "DAL" matching inside "DALDA".
+    _CATEGORY_KEYWORD_PATTERNS: dict[str, tuple[re.Pattern, ...]] = {
+        cat: tuple(re.compile(r"\b" + re.escape(kw) + r"\b") for kw in kws)
+        for cat, kws in CATEGORY_KEYWORDS.items()
+    }
+
     def __init__(self, headless: bool = True) -> None:
         super().__init__(headless=headless)
         self._page_cache: dict[str, list[dict]] = {}
@@ -191,21 +200,49 @@ class AgoraScraper(StoreScraper):
         return cards
 
     # The "milk" storefront page is really a dairy page (milk, cheese, butter,
-    # curd, yogurt all mixed in). "F.C.M.P."/"FCMP" is the store's own
-    # abbreviation for "full cream milk powder" and doesn't contain the word
-    # POWDER at all, so it needs its own check.
-    POWDERED_MARKERS = ("POWDER", "F.C.M.P", "FCMP", "I.F.C.M")
+    # curd, yogurt all mixed in) and also carries non-dairy powders (health
+    # drinks, custard) under the same page. "F.C.M.P."/"FCMP"/"I.F.C.M" are
+    # the store's own abbreviations for "full cream milk powder" and are
+    # sufficient on their own. A bare "POWDER" is not — "Bournvita Health
+    # Drink Powder" or "Custard Powder" would otherwise be misfiled as
+    # powdered milk — so it additionally requires "MILK" in the name.
+    MILK_POWDER_ABBREVIATIONS = ("F.C.M.P", "FCMP", "I.F.C.M")
 
     def _matches_category(self, name_upper: str, category: str) -> bool:
-        is_powdered = any(k in name_upper for k in self.POWDERED_MARKERS)
+        has_milk = "MILK" in name_upper
+        is_powdered = (
+            any(a in name_upper for a in self.MILK_POWDER_ABBREVIATIONS)
+            or ("POWDER" in name_upper and has_milk)
+        )
         if category == "milk":
-            return "MILK" in name_upper and not is_powdered
+            return has_milk and not is_powdered
         if category == "powdered_milk":
             return is_powdered
-        keywords = self.CATEGORY_KEYWORDS.get(category, ())
-        if not keywords:
+        patterns = self._CATEGORY_KEYWORD_PATTERNS.get(category, ())
+        if not patterns:
             return True
-        return any(k in name_upper for k in keywords)
+        return any(p.search(name_upper) for p in patterns)
+
+    async def run(self, categories: list[str] | None = None) -> AsyncIterator[RawListing]:
+        """Drive the scraper without the base class's Playwright/Chromium
+        launch — Agora is httpx-only (see module docstring), so the base
+        implementation would launch and immediately discard an unused
+        browser on every run, and hard-fail on any host without Chromium
+        installed."""
+        cats = categories or list(self.category_targets.keys())
+        for cat in cats:
+            targets = self.category_targets.get(cat, [])
+            for target in targets:
+                logger.info("[%s] scraping %s -> %s", self.store_name, cat, target)
+                try:
+                    async for listing in self.scrape_category(None, cat, target):
+                        listing.category_hint = listing.category_hint or cat
+                        yield listing
+                    await self._polite_wait()
+                except Exception as exc:  # noqa: BLE001
+                    logger.exception("[%s] category %s/%s failed: %s",
+                                     self.store_name, cat, target, exc)
+                    continue
 
     async def scrape_category(self, page, category: str, target: str) -> AsyncIterator[RawListing]:
         cards = await self._fetch_cards(target)
