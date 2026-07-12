@@ -56,6 +56,15 @@ STORES = [
         "delivery_config": {"flat": 60},
         "affiliate_config": {},
     },
+    {
+        "name": "agora",
+        "display_name": "Agora",
+        "base_url": "https://agorasuperstores.com",
+        # No delivery-fee schedule found on the live site; flat 70 is a rough
+        # placeholder for the basket optimizer, matching Daraz's convention.
+        "delivery_config": {"flat": 70},
+        "affiliate_config": {},
+    },
 ]
 
 
