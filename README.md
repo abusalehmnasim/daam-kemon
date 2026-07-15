@@ -1,10 +1,11 @@
 # Daam Kemon
 
-> A grocery price intelligence engine for Bangladesh. Scrapes Chaldal,
-> Shwapno, Othoba, Unimart and Daraz daily, normalizes messy Bangla+English listings
-> into a canonical catalog using a tiered confidence-scoring matcher, then
-> aggregates by **(oil type + size)** so a shopper sees `5L Soybean Oil` as one
-> row across every brand and every store — sorted cheapest first.
+> A grocery price intelligence engine for Bangladesh. Scrapes six stores —
+> Agora, Chaldal, Daraz, Othoba, Shwapno and Unimart (as of 2026-07) — daily,
+> normalizes messy Bangla+English listings into a canonical catalog using a
+> tiered confidence-scoring matcher, then aggregates by **(product type + size)**
+> so a shopper sees `5L Soybean Oil` as one row across every brand and every
+> store — sorted cheapest first.
 
 ![5L Soybean Oil search across stores](docs/02_search_aggregated.png)
 
@@ -64,10 +65,14 @@ solves the actual problem:
 
 - **Backend**: Python 3.11, FastAPI, SQLAlchemy (async), PostgreSQL 16 with
   `pg_trgm`, APScheduler
-- **Scrapers**: Playwright + Chromium, one module per store with selectors
-  isolated as top-of-file constants
+- **Scrapers**: one module per store — Playwright + Chromium for DOM-rendered
+  stores (Shwapno, Othoba), httpx against JSON/search APIs for the rest
+  (Chaldal, Unimart, Daraz, Agora); selectors and endpoints isolated as
+  top-of-file constants
 - **Frontend**: Next.js 14 (App Router) + Tailwind CSS, mobile-first
-- **Infra**: Docker Compose, single image for api + scheduler
+- **Infra**: Docker Compose (single image for api + scheduler) for local dev;
+  production runs the API on Render, the frontend on Vercel, and managed
+  Postgres on Supabase, with the daily scrape driven by GitHub Actions
 
 ---
 
@@ -84,9 +89,9 @@ solves the actual problem:
                               │                          ▲
                    ┌──────────────────────┐              │
                    │  daily scrape (CI)   │──────────────┘
-                   │  ├ chaldal  ├ unimart│
-                   │  ├ shwapno  └ daraz  │   normalize → match
-                   │  └ othoba            │   → upsert + history
+                   │  ├ agora    ├ othoba │
+                   │  ├ chaldal  ├ shwapno│   normalize → match
+                   │  ├ daraz    └ unimart│   → upsert + history
                    └──────────────────────┘
 ```
 
@@ -104,7 +109,7 @@ The interesting code:
 | `backend/app/core/matcher.py` | 5-tier confidence-scoring match (exact / brand / category / loose / fuzzy) |
 | `backend/app/core/basket_optimizer.py` | Brute-force optimal split over `2^N − 1` store subsets, with tiered delivery fees |
 | `backend/app/services/search_service.py` | Search + per-(subcategory, size) bucket aggregation |
-| `backend/scrapers/{chaldal,shwapno,othoba}.py` | Per-store scrapers, selectors as constants |
+| `backend/scrapers/{agora,chaldal,daraz,othoba,shwapno,unimart}.py` | Per-store scrapers, selectors/endpoints as constants |
 | `backend/scrapers/scheduler.py` | APScheduler container for local/self-host — every 6h scrape, daily stale-listing cleanup (disabled in the hosted deploy; production scrapes daily via GitHub Actions) |
 
 ---
@@ -133,8 +138,8 @@ A few choices that aren't obvious from the code:
   `scrapers/_probe.py` — a small Playwright reconnaissance script — so the
   next selector change takes 5 minutes, not an afternoon.
 
-- **Brute-force split, not ILP.** With 3 stores and ~20 basket items there
-  are only 7 non-empty subsets to evaluate; the brute force is exact, fast,
+- **Brute-force split, not ILP.** With 6 stores there are only `2^6 − 1 = 63`
+  non-empty subsets to evaluate per basket; the brute force is exact, fast,
   and obvious. If we ever scale to 10+ stores it becomes an integer program.
 
 - **Loose goods are first-class.** Sugar, rice and dal sold loose by the kg
@@ -163,15 +168,14 @@ daamkemon/
 │   │   ├── schemas/            Pydantic response models
 │   │   ├── services/           search + basket orchestration
 │   │   └── core/
-│   │       ├── categories.py       BD-grocery vocabulary (29 categories, 9 groups)
+│   │       ├── categories.py       BD-grocery vocabulary (107 categories, 17 groups, as of 2026-07)
 │   │       ├── normalizer.py       messy listing → NormalizedProduct
 │   │       ├── matcher.py          tiered confidence-scoring match()
 │   │       └── basket_optimizer.py single-store + optimal-split
 │   ├── scrapers/
 │   │   ├── base.py             Playwright lifecycle, retry, rate limit
-│   │   ├── chaldal.py
-│   │   ├── shwapno.py
-│   │   ├── othoba.py
+│   │   ├── agora.py  chaldal.py  daraz.py
+│   │   ├── othoba.py  shwapno.py  unimart.py
 │   │   ├── runner.py           scrape → normalize → match → upsert + history
 │   │   ├── scheduler.py        APScheduler: every 6h + daily cleanup
 │   │   └── _probe.py           selector reconnaissance tool
@@ -283,7 +287,7 @@ bugs we hit live), and basket optimizer. No DB required.
 - **Best single store**: cheapest store that fulfills the whole basket (or
   the closest partial fulfillment if no store has everything).
 - **Optimal split**: brute force over all `2^N − 1` non-empty subsets of
-  stores. With N = 3 this is 7 combinations — exact and fast.
+  stores. With N = 6 this is 63 combinations — exact and fast.
 - A split is **only surfaced when savings ≥ 30 BDT** — pocket-change savings
   aren't worth dealing with two deliveries.
 
@@ -319,6 +323,14 @@ Scaffolding only; full attribution and billing belong in a separate service.
   Vercel). docker-compose covers local dev, where the APScheduler container can
   run every 6h. Tightening the hosted cadence below daily would mean more CI
   minutes and more load on the stores — a deliberate trade, not a gap.
+
+---
+
+## Independence
+
+Daam Kemon is independent and not affiliated with the listed stores. Prices are
+collected automatically and may lag store changes; ranking is by price only —
+sponsored listings are labeled and never re-ranked.
 
 ---
 
