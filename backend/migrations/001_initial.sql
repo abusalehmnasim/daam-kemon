@@ -110,3 +110,24 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
     error         TEXT
 );
 CREATE INDEX IF NOT EXISTS scrape_runs_store_time_idx ON scrape_runs (store_name, started_at DESC);
+
+-- is_sponsored promoted out of the raw JSONB payload so search never needs to
+-- load raw (deferred in the ORM; ~3x the rest of the row, egress fix Jul 2026).
+-- The backfill's WHERE guard keeps re-runs cheap (idempotent, no row rewrites).
+ALTER TABLE store_products ADD COLUMN IF NOT EXISTS is_sponsored BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE store_products
+SET is_sponsored = COALESCE((raw->>'sponsored')::boolean, FALSE)
+WHERE is_sponsored IS DISTINCT FROM COALESCE((raw->>'sponsored')::boolean, FALSE);
+
+-- Row Level Security: the app never uses Supabase's auto-generated Data API
+-- (PostgREST) — the backend connects directly as the table owner, which RLS
+-- does not restrict. Enabling RLS with no policies closes the Data API surface
+-- (anon/authenticated roles get denied by default) without affecting the app.
+-- Dynamic so new tables added above are covered on the next migrate run.
+DO $$
+DECLARE t RECORD;
+BEGIN
+    FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t.tablename);
+    END LOOP;
+END $$;

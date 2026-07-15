@@ -36,7 +36,7 @@ def _build_offering(sp: StoreProduct, store_display: str) -> StoreOfferingOut:
         delivery_fee=float(sp.delivery_fee) if sp.delivery_fee else None,
         match_confidence=float(sp.match_confidence) if sp.match_confidence else None,
         match_method=sp.match_method,
-        is_sponsored=bool(sp.raw.get("sponsored", False)) if sp.raw else False,
+        is_sponsored=sp.is_sponsored,
     )
 
 

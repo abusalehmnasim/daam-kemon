@@ -28,7 +28,11 @@ class StoreProduct(Base):
     delivery_fee: Mapped[float | None] = mapped_column(Numeric(10, 2))
     match_confidence: Mapped[float | None] = mapped_column(Numeric(4, 3))
     match_method: Mapped[str | None] = mapped_column(String)
-    raw: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    is_sponsored: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    # Deferred: the raw scraped payload averages ~3x the rest of the row and is
+    # kept for audit only — loading it on every search/ingest fetch was the main
+    # driver of the July-2026 free-tier egress blowout (57 GB/mo from a 35 MB DB).
+    raw: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False, deferred=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
