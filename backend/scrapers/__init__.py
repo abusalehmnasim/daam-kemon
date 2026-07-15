@@ -1,3 +1,4 @@
+from .agora import AgoraScraper
 from .chaldal import ChaldalScraper
 from .daraz import DarazScraper
 from .othoba import OthobaScraper
@@ -13,6 +14,8 @@ SCRAPERS = {
     "othoba":  OthobaScraper,
     "unimart": UnimartScraper,
     "daraz":   DarazScraper,
+    "agora":   AgoraScraper,
 }
 
-__all__ = ["ChaldalScraper", "ShwapnoScraper", "OthobaScraper", "UnimartScraper", "DarazScraper", "SCRAPERS"]
+__all__ = ["ChaldalScraper", "ShwapnoScraper", "OthobaScraper", "UnimartScraper", "DarazScraper",
+           "AgoraScraper", "SCRAPERS"]

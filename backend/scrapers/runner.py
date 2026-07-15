@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 from sqlalchemy import select
+from sqlalchemy.orm import load_only, raiseload
 
 from app.core.matcher import CandidateProduct, match
 from app.core.normalizer import normalize
@@ -39,7 +40,23 @@ from .base import RawListing, StoreScraper
 logger = logging.getLogger(__name__)
 
 
-async def _get_or_create_product(session, np) -> tuple[Product | None, float, str]:
+def _to_candidate(p) -> CandidateProduct:
+    return CandidateProduct(
+        id=p.id,
+        normalized_name=p.normalized_name,
+        brand=p.brand,
+        category=p.category,
+        subcategory=p.subcategory,
+        size_value=float(p.size_value) if p.size_value else None,
+        size_unit=p.size_unit,
+        base_unit_qty=float(p.base_unit_qty) if p.base_unit_qty else None,
+        is_loose=p.is_loose,
+    )
+
+
+async def _get_or_create_product(
+    session, np, candidate_cache: dict[str, list[CandidateProduct]] | None = None
+) -> tuple[Product | None, float, str]:
     """Find an existing canonical Product that matches `np`, or create one.
 
     Returns (product, match_confidence, match_method). The confidence/method are
@@ -47,28 +64,40 @@ async def _get_or_create_product(session, np) -> tuple[Product | None, float, st
     created canonical — so the persisted columns are honest and auditable. (This
     used to always store 1.0/"exact" because a redundant second matcher pass in
     the caller excluded the very product it compared against.)
+
+    `candidate_cache` (per scrape run, keyed by category) avoids re-fetching the
+    same candidate set for every listing — the fetch used to run once per listing
+    (~140k times over 19 days) and was the top egress driver on the free-tier DB.
+    Freshly created canonicals are appended so later listings in the run can
+    exact-match them. The caller must discard the cache if a savepoint rolls back
+    (a cached id could then point at a product whose INSERT was undone).
     """
     if not np.category:
         # Can't decide a category — store as orphan (no product link).
         return None, 0.0, "unmatched"
 
-    res = await session.execute(
-        select(Product).where(Product.category == np.category)
-    )
-    candidates = [
-        CandidateProduct(
-            id=p.id,
-            normalized_name=p.normalized_name,
-            brand=p.brand,
-            category=p.category,
-            subcategory=p.subcategory,
-            size_value=float(p.size_value) if p.size_value else None,
-            size_unit=p.size_unit,
-            base_unit_qty=float(p.base_unit_qty) if p.base_unit_qty else None,
-            is_loose=p.is_loose,
+    if candidate_cache is not None and np.category in candidate_cache:
+        candidates = candidate_cache[np.category]
+    else:
+        # Ingest never reads listings, and Product.store_listings is lazy="selectin"
+        # (eager) — without raiseload, every candidate fetch here dragged along ALL
+        # listings of ALL candidates (raw payloads included), which is what blew the
+        # free-tier egress quota. load_only trims to the fields the matcher reads.
+        res = await session.execute(
+            select(Product)
+            .where(Product.category == np.category)
+            .options(
+                load_only(
+                    Product.id, Product.normalized_name, Product.brand,
+                    Product.category, Product.subcategory, Product.size_value,
+                    Product.size_unit, Product.base_unit_qty, Product.is_loose,
+                ),
+                raiseload(Product.store_listings),
+            )
         )
-        for p in res.scalars().unique().all()
-    ]
+        candidates = [_to_candidate(p) for p in res.scalars().unique().all()]
+        if candidate_cache is not None:
+            candidate_cache[np.category] = candidates
     result = match(np, candidates)
 
     # Ingest is stricter than search: only attach the listing to an existing
@@ -78,7 +107,11 @@ async def _get_or_create_product(session, np) -> tuple[Product | None, float, st
     # Rupchanda canonical). New canonicals fragment cleanly and the search-time
     # aggregation re-collapses them under "5L Soybean Oil".
     if result.product_id is not None and result.confidence >= 0.85:
-        res = await session.execute(select(Product).where(Product.id == result.product_id))
+        res = await session.execute(
+            select(Product)
+            .where(Product.id == result.product_id)
+            .options(raiseload(Product.store_listings))
+        )
         return res.scalar_one(), result.confidence, result.method
 
     # Build a sensible canonical name. We want it readable, not the raw scrape.
@@ -107,11 +140,15 @@ async def _get_or_create_product(session, np) -> tuple[Product | None, float, st
         Product.size_unit == np.size_unit,
         Product.size_value == np.size_value,
         Product.is_loose == np.is_loose
-    )
+    ).options(raiseload(Product.store_listings))
     dup_res = await session.execute(dup_stmt)
     existing_dup = dup_res.scalar_one_or_none()
     if existing_dup is not None:
         # Same (brand, subcategory, size, loose) spec by construction — exact.
+        # It exists in the DB but wasn't among the candidates (e.g. created by a
+        # concurrent process) — add it so later listings match without this detour.
+        if candidate_cache is not None:
+            candidate_cache.setdefault(np.category, []).append(_to_candidate(existing_dup))
         return existing_dup, 1.0, "exact"
 
     canonical_name = " ".join(parts)
@@ -129,6 +166,8 @@ async def _get_or_create_product(session, np) -> tuple[Product | None, float, st
     )
     session.add(product)
     await session.flush()
+    if candidate_cache is not None:
+        candidate_cache.setdefault(np.category, []).append(_to_candidate(product))
     # Freshly created from this listing: exact by definition, but tag as "new"
     # so audits can distinguish spawned canonicals from matched ones.
     return product, 1.0, "new"
@@ -141,6 +180,8 @@ async def _upsert_store_product(session, scraper: StoreScraper, listing: RawList
         select(StoreProduct)
         .where(StoreProduct.store_name == scraper.store_name)
         .where(StoreProduct.store_product_id == listing.store_product_id)
+        # This path never reads the (lazy="joined") product relationship.
+        .options(raiseload(StoreProduct.product))
     )
     existing = res.scalar_one_or_none()
     now = datetime.now(timezone.utc)
@@ -158,6 +199,7 @@ async def _upsert_store_product(session, scraper: StoreScraper, listing: RawList
             in_stock=listing.in_stock,
             match_confidence=confidence,
             match_method=method,
+            is_sponsored=bool((listing.raw or {}).get("sponsored", False)),
             raw=listing.raw,
         )
         session.add(sp)
@@ -177,6 +219,7 @@ async def _upsert_store_product(session, scraper: StoreScraper, listing: RawList
     existing.in_stock = listing.in_stock
     existing.last_seen_at = now
     existing.store_product_name = listing.name
+    existing.is_sponsored = bool((listing.raw or {}).get("sponsored", False))
     if product_id is not None:
         existing.product_id = product_id
         existing.match_confidence = confidence
@@ -202,6 +245,10 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
 
     try:
         async with session_scope() as session:
+            # Per-run candidate cache (category -> matcher candidates); see
+            # _get_or_create_product. Discarded wholesale on any per-item error
+            # because a savepoint rollback can undo a cached product's INSERT.
+            candidate_cache: dict[str, list[CandidateProduct]] = {}
             async for listing in scraper.run(categories=categories):
                 scraped += 1
                 np = normalize(listing.name)
@@ -215,7 +262,8 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
                 # extract enough attributes) doesn't poison the whole run.
                 try:
                     async with session.begin_nested():
-                        product, confidence, method = await _get_or_create_product(session, np)
+                        product, confidence, method = await _get_or_create_product(
+                            session, np, candidate_cache)
                         if product is None:
                             await _upsert_store_product(session, scraper, listing, None, 0.0, "unmatched")
                             continue
@@ -225,6 +273,7 @@ async def run_store(scraper_cls, categories: list[str] | None) -> None:
                 except Exception as per_item_exc:  # noqa: BLE001
                     logger.warning("[%s] skipping %r: %s",
                                    scraper.store_name, listing.store_product_id, per_item_exc)
+                    candidate_cache.clear()
                     import sqlalchemy.exc
                     is_conn_err = False
                     if isinstance(per_item_exc, sqlalchemy.exc.PendingRollbackError):

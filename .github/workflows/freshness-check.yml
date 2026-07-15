@@ -1,0 +1,52 @@
+name: Freshness check
+
+# Alerts if the live catalog goes stale — independently of whether the scrape
+# job reported success. A scrape can finish "success" with 0 items and quietly
+# freeze prices (this happened for ~3 weeks in June 2026); this check looks at
+# the age of the data, not the job log. Runs as its own workflow so it still
+# fires when the scrape job errors out or exits early.
+on:
+  schedule:
+    # 05:00 UTC daily — a few hours after the 01:00 UTC scrape (a full run is
+    # ~2-3h), so today's data is in by the time we check.
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  freshness:
+    name: Check data freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Optional: set this repo secret to also get a Slack ping on staleness.
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # Override the default 36h staleness threshold here if desired.
+      MAX_AGE_HOURS: "36"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check freshness
+        # Exits 1 (stale) or 2 (could not evaluate) -> job fails -> GitHub emails
+        # the repo owner for the failed scheduled run.
+        run: python -m scripts.check_freshness
+
+      - name: Notify Slack on staleness
+        if: ${{ failure() && env.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -sf -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d '{"text":":warning: Daam Kemon freshness check FAILED — the live catalog may be stale. See the failed \"Freshness check\" Actions run: '"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"'"}'

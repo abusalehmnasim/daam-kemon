@@ -170,11 +170,11 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                       >
                         {taka(o.price)}
                       </div>
-                      {o.original_price && o.original_price > o.price && (
+                      {o.original_price && o.original_price > o.price ? (
                         <div className="tnum text-xs text-faint line-through">
                           {taka(o.original_price)}
                         </div>
-                      )}
+                      ) : null}
                       {basis && (
                         <div className="tnum text-[11px] text-muted">
                           {unitPrice(o.price, basis)}
