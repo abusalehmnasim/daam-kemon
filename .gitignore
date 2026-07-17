@@ -37,3 +37,7 @@ desktop.ini
 .vscode/
 *.swp
 *.swo
+
+# Local agent/editor tooling (not part of the project)
+.claude/
+CLAUDE.md

@@ -18,7 +18,7 @@ just below the measured baseline so any matcher/normalizer change that
 degrades a class fails CI, while improvements raise the observed numbers and
 the floors should be ratcheted up after them.
 
-Measured baseline (2026-07-12, 245 claude-seed-v0 pairs):
+Measured baseline (2026-07-12, 245 seed-v0 pairs):
     same         precision 0.333  recall 0.200   <- brand-extraction noise
     same_bucket  precision 0.600  recall 0.720
     different    precision 0.765  recall 0.674   <- subcategory sparsity

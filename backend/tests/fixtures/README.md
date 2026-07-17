@@ -57,7 +57,7 @@ Rules of thumb:
 
 `labeler` values:
 
-- `claude-seed-v0` — machine-proposed seed labels (2026-07-12), from real
+- `seed-v0` — machine-proposed seed labels (2026-07-12), from real
   production pairs, awaiting owner review. Good enough to wire the harness
   and set a provisional baseline; **not** yet citable as human gold.
 - `owner` — reviewed/decided by the project owner. The target state: promote
