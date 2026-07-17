@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE INDEX IF NOT EXISTS products_normalized_name_trgm ON products USING gin (normalized_name gin_trgm_ops);
+-- Search also fuzzy-matches the raw `name`; index it so the pg_trgm `%` operator
+-- can use a GIN scan instead of a seq scan as the catalog grows.
+CREATE INDEX IF NOT EXISTS products_name_trgm            ON products USING gin (name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS products_category_idx         ON products (category, subcategory);
 CREATE INDEX IF NOT EXISTS products_brand_idx            ON products (brand);
 CREATE UNIQUE INDEX IF NOT EXISTS products_dedupe_key

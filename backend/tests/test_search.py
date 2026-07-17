@@ -1,5 +1,18 @@
+from types import SimpleNamespace
+
+from sqlalchemy import Select
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql.elements import TextClause
+
 from app.schemas.product import ProductGroupOut, ProductOut, StoreOfferingOut
-from app.services.search_service import _aggregate_groups, _brand_hint_from_name, get_base_unit_qty
+from app.services.search_service import (
+    _aggregate_groups,
+    _brand_hint_from_name,
+    _store_display_map,
+    get_base_unit_qty,
+    reset_store_display_cache,
+    search,
+)
 
 
 def _make_mock_group(prod_id: int, name: str, size_value: float, size_unit: str, category: str = "cooking_oil") -> ProductGroupOut:
@@ -68,6 +81,120 @@ def test_aggregate_groups_sorting_without_target():
     assert res[0].size_value == 1.0
     assert res[1].size_value == 2.0
     assert res[2].size_value == 5.0
+
+
+# ---- Round-trip collapse (fix: search latency = serial cross-region queries) ----
+
+
+class _Result:
+    """Canned result covering both `.all()` and `.scalars().unique().all()`."""
+
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+    def scalars(self):
+        return self
+
+    def unique(self):
+        return self
+
+
+class _RecordingSession:
+    """Fake AsyncSession that records executed statements and replays canned
+    results in order. No DB, no network."""
+
+    def __init__(self, results):
+        self._results = list(results)
+        self.statements = []
+
+    async def execute(self, stmt, params=None):
+        self.statements.append(stmt)
+        return self._results.pop(0) if self._results else _Result([])
+
+
+def _fake_offering(sp_id: int, price: float):
+    return SimpleNamespace(
+        id=sp_id,
+        store_name="chaldal",
+        store_product_name="Some Oil 1L",
+        price=price,
+        original_price=None,
+        in_stock=True,
+        store_product_url="https://x",
+        image_url=None,
+        delivery_fee=None,
+        match_confidence=None,
+        match_method=None,
+        raw=None,
+    )
+
+
+def _fake_product(pid: int):
+    return SimpleNamespace(
+        id=pid,
+        name=f"Product {pid}",
+        brand="test_brand",
+        category="cooking_oil",
+        subcategory="soybean",
+        size_value=1.0,
+        size_unit="L",
+        is_loose=False,
+        store_listings=[_fake_offering(pid * 10, 100.0)],
+    )
+
+
+async def test_trigram_path_makes_one_product_query_and_preserves_order():
+    # Regression: the text-search path used to fetch ids via raw SQL and then
+    # RE-FETCH the Product rows by id — a second, serial, cross-region round-trip
+    # per search. It must now be a SINGLE product query. "randomxyz" resolves to
+    # no category, forcing the trigram branch.
+    reset_store_display_cache()
+    products = [_fake_product(3), _fake_product(1), _fake_product(2)]
+    session = _RecordingSession([
+        _Result([("chaldal", "Chaldal")]),  # _store_display_map
+        _Result(products),                   # single product query (was two)
+    ])
+
+    groups, _cat, _size = await search(session, "randomxyz")
+
+    # Exactly two round-trips: store-display map + one product query.
+    assert len(session.statements) == 2
+    # The second statement is an ORM Select, NOT a raw "SELECT id FROM products".
+    assert isinstance(session.statements[1], Select)
+    assert not any(isinstance(s, TextClause) for s in session.statements)
+    # Order returned by the DB (relevance order) is preserved, never re-sorted.
+    assert [g.product.id for g in groups] == [3, 1, 2]
+    # The WHERE must use the index-usable `%` operator, not a `similarity() > x`
+    # predicate (which forces a seq scan and cannot use the GIN trgm indexes).
+    where_sql = str(session.statements[1].whereclause.compile(dialect=postgresql.dialect()))
+    assert "%" in where_sql
+    assert "similarity(" not in where_sql.lower()
+
+
+def test_trgm_threshold_constants_stay_in_sync():
+    # The `%` operator's recall depends on the connection GUC set in database.py;
+    # it must equal the threshold search reasons about, or results silently drift.
+    from app.database import TRGM_SIMILARITY_THRESHOLD
+    from app.services.search_service import TRGM_THRESHOLD
+
+    assert TRGM_SIMILARITY_THRESHOLD == TRGM_THRESHOLD
+
+
+async def test_store_display_map_is_cached_across_calls():
+    # Regression: the store roster (~5 static rows) was fetched on EVERY search,
+    # costing a cross-region round-trip. It must be served from an in-process
+    # cache on the second call.
+    reset_store_display_cache()
+    session = _RecordingSession([_Result([("chaldal", "Chaldal")])])
+
+    first = await _store_display_map(session)
+    second = await _store_display_map(session)
+
+    assert first == {"chaldal": "Chaldal"} == second
+    assert len(session.statements) == 1  # second call hit the cache
 
 
 def test_aggregate_groups_sorting_with_target():
