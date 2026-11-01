@@ -41,3 +41,5 @@ desktop.ini
 # Local agent/editor tooling (not part of the project)
 .claude/
 CLAUDE.md
+.ua/
+.playwright-mcp/

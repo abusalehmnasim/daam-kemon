@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .api import admin, basket, categories, click, products, search, stores
 from .config import settings
-from .database import dispose
+from .database import dispose, get_session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -44,6 +46,13 @@ async def root() -> dict[str, str]:
 @app.get("/healthz", tags=["meta"])
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/healthz/db", tags=["meta"])
+async def healthz_db(session: AsyncSession = Depends(get_session)) -> dict[str, str]:
+    """Lightweight database connectivity check that keeps the pool and DB active."""
+    await session.execute(text("SELECT 1"))
+    return {"status": "ok", "database": "connected"}
 
 
 @app.on_event("startup")

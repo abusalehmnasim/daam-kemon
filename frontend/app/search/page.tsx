@@ -18,6 +18,7 @@ function SearchInner() {
   const [tree, setTree] = useState<CategoryGroupOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Load the category tree once for the filter sidebar
   useEffect(() => {
@@ -25,7 +26,7 @@ function SearchInner() {
       .categories()
       .then(setTree)
       .catch(() => {});
-  }, []);
+  }, [retryKey]);
 
   useEffect(() => {
     if (!q && !categoryKey) return;
@@ -51,7 +52,7 @@ function SearchInner() {
     return () => {
       stale = true;
     };
-  }, [q, categoryKey, subcategoryKey]);
+  }, [q, categoryKey, subcategoryKey, retryKey]);
 
   const activeCategory: CategoryOut | undefined = useMemo(() => {
     if (!tree || !categoryKey) return undefined;
@@ -95,8 +96,31 @@ function SearchInner() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-faint">Searching…</p>}
-      {error && <p className="text-sm text-muted">Search failed. Please try again.</p>}
+      {loading && (
+        <div className="space-y-1">
+          <p className="text-sm text-faint">Searching…</p>
+          <p className="text-xs text-muted">
+            Server may take a few moments to warm up on first request.
+          </p>
+        </div>
+      )}
+      {error && (
+        <div className="space-y-2 rounded-card border border-line bg-card p-4 text-sm text-muted">
+          <p className="font-medium text-ink">Search failed</p>
+          <p className="text-xs text-faint">
+            {error.includes("timed out")
+              ? "The server took too long to respond while waking up. Please try again."
+              : "The service is temporarily unavailable. Please retry."}
+          </p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-dark"
+          >
+            Retry Search
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-3">
         {data?.groups.map((g, i) => (

@@ -103,6 +103,12 @@ def test_healthz(client):
     assert res.json() == {"status": "ok"}
 
 
+def test_healthz_db(client):
+    res = client.get("/healthz/db")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok", "database": "connected"}
+
+
 # --------------------------------------------------------------------------- #
 # Query / path validation (pure FastAPI, no DB access on the failure path)
 # --------------------------------------------------------------------------- #

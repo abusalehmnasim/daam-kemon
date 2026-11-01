@@ -6,20 +6,33 @@ import type {
 } from "@/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+const TIMEOUT_MS = 25000;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`API ${res.status}: ${await res.text()}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...init,
+      signal: init?.signal || controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`API ${res.status}: ${await res.text()}`);
+    }
+    return (await res.json()) as Promise<T>;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Request timed out. The server may still be waking up — please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json() as Promise<T>;
 }
 
 export const api = {

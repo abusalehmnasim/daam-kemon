@@ -34,11 +34,13 @@ CARD_SEL        = "div.product-box"
 LINK_SEL        = "a[href^='/']"
 IMG_SEL         = "img"
 PRICE_TEXT_SEL  = ".active-price, .product-price"
-NAME_SEL        = ".product-title, h3, [class*='product-title']"
+NAME_SEL        = ".product-box-title, .product-title, h3, [class*='product-title']"
 
 _PRICE_RE        = re.compile(r"৳\s*([\d,]+(?:\.\d+)?)")
-_DELIVERY_PREFIX = re.compile(r"^\s*Delivery\s+\d+(?:-\d+)?\s*(?:hr|hour|hours|min|minute|minutes|day|days)\b\s*",
-                              re.IGNORECASE)
+_DELIVERY_PREFIX = re.compile(
+    r"^\s*(?:(?:Most\s+Picked|Most\s+Popular|Best\s+Seller|Top\s+Rated)\b\s*)?Delivery\s+\d+(?:-\d+)?\s*(?:hr|hour|hours|min|minute|minutes|day|days)\b\s*",
+    re.IGNORECASE,
+)
 _TAIL_NOISE      = re.compile(r"\b(Per Piece|Add to Bag|Out of Stock|In Stock|Per Pack)\b.*$", re.IGNORECASE)
 
 

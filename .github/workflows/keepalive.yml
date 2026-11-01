@@ -1,0 +1,38 @@
+name: Keepalive & Ping
+
+# Keeps Render and Supabase (free tier) awake and prevents Supabase from
+# auto-pausing after 7 days of inactivity. Also prevents GitHub from disabling
+# scheduled workflows after 60 days of repository inactivity.
+
+on:
+  schedule:
+    # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    name: Ping Daam Kemon API & Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping API Health
+        run: |
+          echo "Pinging API health endpoint..."
+          curl -sf -m 30 "https://daam-kemon.vercel.app/api/healthz" || exit 1
+
+      - name: Ping Database via Categories (triggers real SQL query)
+        run: |
+          echo "Pinging categories to keep Supabase DB active..."
+          curl -sf -m 60 "https://daam-kemon.vercel.app/api/categories" > /dev/null || exit 1
+
+      - name: Ping Search
+        run: |
+          echo "Pinging search endpoint..."
+          curl -sf -m 60 "https://daam-kemon.vercel.app/api/search?q=oil" > /dev/null || exit 1
+
+      - name: Check out repo for keepalive
+        uses: actions/checkout@v4
+
+      - name: Keep GitHub Actions schedule active
+        uses: gautamkrishnar/keepalive-workflow@v2
