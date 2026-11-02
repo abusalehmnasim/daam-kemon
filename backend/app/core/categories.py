@@ -66,7 +66,7 @@ CATEGORIES = {
                      "কাটারিভোগ", "চিনিগুঁড়া"],
         "brands": ["aci pure", "aci", "pran", "rashid", "diamond", "chashi",
                    "acm", "fresh", "teer", "bashundhara", "aarong", "ispahani",
-                   "green field"],
+                   "green field", "akij", "fortune", "rupchanda", "shwapno", "agora", "quality", "foodela", "finlay"],
         "units": ["KG", "G"],
         "subcategories": {
             "miniket":    ["miniket", "মিনিকেট"],
@@ -114,10 +114,10 @@ CATEGORIES = {
         "group": "Staples & Grains",
         "keywords": ["atta", "maida", "flour", "suji", "semolina",
                      "rice flour", "corn flour", "cornstarch", "corn starch",
-                     "besan", "gram flour",
+                     "besan", "beshon", "gram flour",
                      "আটা", "ময়দা", "সুজি", "চালের গুঁড়া", "বেসন"],
-        "brands": ["teer", "fresh", "acm", "pran", "rupchanda", "bashundhara",
-                   "ifad", "pusti", "muskan", "shaad", "foodela", "akij"],
+        "brands": ["teer", "fresh", "aci pure", "aci", "acm", "pran", "rupchanda", "bashundhara",
+                   "ifad", "pusti", "muskan", "shaad", "foodela", "akij", "shwapno", "agora", "bpm"],
         "units": ["KG", "G"],
         "subcategories": {
             "atta":  ["atta", "whole wheat", "আটা"],
@@ -125,7 +125,7 @@ CATEGORIES = {
             "suji":  ["suji", "semolina", "সুজি"],
             "rice_flour": ["rice flour", "chaler gura", "চালের গুঁড়া"],
             "corn_flour": ["corn flour", "cornstarch", "corn starch"],
-            "besan": ["besan", "gram flour", "বেসন"],
+            "besan": ["besan", "beshon", "gram flour", "বেসন"],
         },
     },
     "lentils": {
@@ -134,7 +134,8 @@ CATEGORIES = {
         "keywords": ["dal", "lentil", "lentils", "ডাল", "মসুর", "মুগ", "ছোলা",
                      "motor dal", "matar dal", "motor daal", "matar", "মটর", "chickpea", "boot", "khesari", "anchor dal",
                      "mash kalai", "maskalai", "black gram", "felon"],
-        "brands": ["pran", "fresh", "teer", "radhuni", "acm", "aarong"],
+        "brands": ["pran", "fresh", "teer", "radhuni", "aci pure", "aci", "acm",
+                   "aarong", "pusti", "shwapno", "agora", "bpm", "ramisa"],
         "units": ["KG", "G"],
         "subcategories": {
             "masoor":  ["masoor", "mosur", "red lentil", "মসুর"],
@@ -172,9 +173,9 @@ CATEGORIES = {
             "তেল", "সয়াবিন", "সরিষার তেল", "সরিষা", "নারিকেল তেল", "রাইস ব্রান"
         ],
         "brands": ["rupchanda", "fresh", "teer", "pusti", "veola", "mojo",
-                   "radhuni", "acm", "bashundhara", "kings", "fortune",
-                   "starship", "saffola", "olio orolio", "luglio",
-                   "ecorganic", "sena", "muskan gold", "aci pure"],
+                   "radhuni", "aci", "aci pure", "acm", "bashundhara", "kings", "fortune",
+                   "starship", "saffola", "olio orolio", "olitalia", "sunar", "luglio",
+                   "ecorganic", "sena", "muskan gold", "foodela", "shwapno", "agora", "suresh"],
         "units": ["L", "ML"],
         "subcategories": {
             "soybean":   ["soybean", "soyabean", "soya", "সয়াবিন"],
@@ -194,7 +195,7 @@ CATEGORIES = {
         "group": "Cooking Essentials",
         "keywords": ["ghee", "dalda", "vanaspati", "butter oil",
                      "ঘি", "ডালডা"],
-        "brands": ["fresh", "milk vita", "aarong", "rupchanda"],
+        "brands": ["fresh", "milk vita", "aarong", "rupchanda", "pran", "baghabari", "danish", "radhuni"],
         "units": ["KG", "G"],
         "subcategories": {
             "ghee":  ["ghee", "ঘি"],
@@ -233,7 +234,7 @@ CATEGORIES = {
         "display": "Honey",
         "group": "Cooking Essentials",
         "keywords": ["honey", "modhu", "মধু"],
-        "brands": ["pran", "dabur", "apis", "khaas food"],
+        "brands": ["pran", "dabur", "apis", "khaas food", "saffola", "al shifa", "golden bee"],
         "units": ["KG", "G", "ML", "L"],
         "subcategories": {},
     },
@@ -241,7 +242,7 @@ CATEGORIES = {
         "display": "Salt",
         "group": "Cooking Essentials",
         "keywords": ["salt", "lobon", "labon", "লবণ", "iodized salt"],
-        "brands": ["acm", "fresh", "pran", "molla", "confidence"],
+        "brands": ["aci pure", "aci", "acm", "fresh", "pran", "teer", "shwapno", "molla", "confidence"],
         "units": ["KG", "G"],
         "subcategories": {
             "iodized": ["iodized", "iodine"],
@@ -264,8 +265,9 @@ CATEGORIES = {
             "fenugreek", "methi", "mustard seed", "nigella", "kalojira",
             "star anise", "nutmeg", "mace", "jayfol", "joyitri",
         ],
-        "brands": ["radhuni", "pran", "fresh", "bd", "acm", "ifad", "shaad",
-                   "kazi", "potash", "ahmed"],
+        "brands": ["radhuni", "pran", "fresh", "aci pure", "aci", "touch", "green touch",
+                   "bashundhara", "teer", "bd foods", "bd food", "shwapno", "agora",
+                   "acm", "ifad", "shaad", "kazi", "potash", "ahmed"],
         "units": ["G", "KG"],
         "subcategories": {
             "turmeric":  ["turmeric", "haldi", "holud", "হলুদ"],
@@ -293,7 +295,8 @@ CATEGORIES = {
                      "chicken masala", "beef masala", "fish masala",
                      "curry powder", "kabab masala", "haleem mix",
                      "roast masala", "মসলা"],
-        "brands": ["radhuni", "pran", "ahmed", "shaad", "kazi", "fresh", "potash"],
+        "brands": ["radhuni", "pran", "ahmed", "shaad", "kazi", "fresh", "potash",
+                   "aci pure", "aci", "bashundhara", "teer", "bd foods", "bd food", "shwapno", "agora"],
         "units": ["G"],
         "subcategories": {
             "biryani": ["biryani", "biriyani", "tehari"],
@@ -499,9 +502,11 @@ CATEGORIES = {
         "display": "Liquid Milk",
         "group": "Dairy",
         "keywords": ["uht milk", "liquid milk", "pasteurized milk",
-                     "doodh", "দুধ", "condensed milk", "evaporated milk"],
+                     "pure milk", "full cream milk", "lactose free milk", "lactose free",
+                     "fresh milk", "cow milk", "whole milk", "low fat milk", "skim milk",
+                     "skimmed milk", "toned milk", "doodh", "দুধ", "condensed milk", "evaporated milk"],
         "brands": ["pran", "arong", "aarong", "milk vita", "milkvita",
-                   "farm fresh", "danish", "amul", "cowhead"],
+                   "farm fresh", "fresh", "arla", "dano", "danish", "amul", "cowhead"],
         "units": ["L", "ML", "G"],
         "subcategories": {
             "uht":          ["uht"],
@@ -516,7 +521,8 @@ CATEGORIES = {
         "keywords": ["powder milk", "powdered milk", "milk powder",
                      "full cream milk powder", "f.c.m.p", "fcmp", "গুঁড়া দুধ"],
         "brands": ["diploma", "dano", "nido", "marks", "fresh", "milk vita",
-                   "milkvita", "anchor", "starship", "farm fresh"],
+                   "milkvita", "anchor", "starship", "farm fresh", "nestle", "pusti",
+                   "danish", "pran", "farmland", "arla"],
         "units": ["G", "KG"],
         "subcategories": {
             "full_cream": ["full cream", "fcmp", "f.c.m.p"],
@@ -541,7 +547,7 @@ CATEGORIES = {
         "display": "Butter",
         "group": "Dairy",
         "keywords": ["butter", "মাখন"],
-        "brands": ["amul", "farm fresh", "aarong", "president"],
+        "brands": ["milk vita", "aarong", "arong", "farm fresh", "amul", "pran", "danish", "president"],
         "units": ["G", "KG"],
         "subcategories": {},
     },
@@ -772,7 +778,8 @@ CATEGORIES = {
         "keywords": ["noodle", "noodles", "ramen", "instant noodles", "নুডলস",
                      "pasta", "macaroni", "vermicelli", "semai"],
         "brands": ["mr. noodles", "mr noodles", "knorr", "maggi", "pran",
-                   "doodles", "ifad", "cocola"],
+                   "doodles", "ifad", "cocola", "samyang", "mama", "chopstick", "how how",
+                   "bashundhara", "fresh", "nestle", "aci pure", "aci", "dekko"],
         "units": ["G", "KG", "PCS"],
         "subcategories": {
             "instant": ["instant", "cup"],
@@ -801,7 +808,7 @@ CATEGORIES = {
         "group": "Packaged & Instant Foods",
         "keywords": ["tomato sauce", "ketchup", "tomato ketchup", "chili sauce",
                      "chilli sauce", "টমেটো সস"],
-        "brands": ["pran", "ahmed", "ruchi", "heinz", "kissan", "tasty", "danish"],
+        "brands": ["pran", "ahmed", "ruchi", "heinz", "kissan", "maggi", "fresh", "tasty", "danish"],
         "units": ["ML", "G", "KG"],
         "subcategories": {
             "ketchup": ["ketchup"],
@@ -825,7 +832,7 @@ CATEGORIES = {
         "group": "Packaged & Instant Foods",
         "keywords": ["pickle", "achar", "আচার", "jolpai", "mango pickle",
                      "garlic pickle"],
-        "brands": ["pran", "ahmed", "rader", "shezan"],
+        "brands": ["radhuni", "pran", "ahmed", "bd foods", "bd food", "aarong", "chashi", "shezan", "rader"],
         "units": ["G", "KG"],
         "subcategories": {
             "mango":  ["mango pickle"],
@@ -886,9 +893,10 @@ CATEGORIES = {
         "group": "Snacks & Confectionery",
         "keywords": ["biscuit", "biscuits", "cookie", "cookies", "cracker",
                      "বিস্কুট"],
-        "brands": ["tiger", "olympia", "olimpia", "nabisco", "pran", "danish",
+        "brands": ["olympic", "tiger", "olympia", "olimpia", "nabisco", "pran", "danish",
+                   "fresh", "dekko", "belleame", "meiji", "cocola", "ispahani", "cadbury",
                    "bisk club", "bisk", "haque", "ifad", "fu wang", "bourbon",
-                   "energy plus", "horlicks"],
+                   "horlicks"],
         "units": ["G", "KG"],
         "subcategories": {
             "energy":     ["energy", "glucose"],
@@ -901,7 +909,7 @@ CATEGORIES = {
         "display": "Chips & Crisps",
         "group": "Snacks & Confectionery",
         "keywords": ["chips", "crisps", "potato chips"],
-        "brands": ["lays", "pringles", "bombay sweets", "mr chips"],
+        "brands": ["lays", "pringles", "bombay sweets", "mr chips", "pran", "kurkure", "doritos", "meridian"],
         "units": ["G"],
         "subcategories": {},
     },
@@ -910,6 +918,7 @@ CATEGORIES = {
         "group": "Snacks & Confectionery",
         "keywords": ["chanachur", "chanachoor", "চানাচুর", "jhalmuri mix"],
         "brands": ["bombay sweets", "haque", "pran", "danish", "ahmed", "ruchi",
+                   "bd foods", "bd food", "fresh", "chashi",
                    "potato crackers", "potato"],
         "units": ["G", "KG"],
         "subcategories": {
@@ -989,6 +998,7 @@ CATEGORIES = {
         "keywords": ["tea", "cha", "chai", "tea bag", "tea leaf", "tea leaves",
                      "green tea", "চা", "চা পাতা"],
         "brands": ["ispahani", "taaza", "fresh", "kazi", "lipton", "halda valley",
+                   "dilmah", "finlay", "finlays", "tetley", "aci pure", "aci", "pran",
                    "seylon", "danedar", "twinings", "vitacare"],
         "units": ["G", "KG", "PCS"],
         "subcategories": {
@@ -1015,7 +1025,7 @@ CATEGORIES = {
         "group": "Beverages",
         "keywords": ["soft drink", "cola", "carbonated", "soda", "schweppes", "carbonated drink", "zero sugar"],
         "brands": ["coca-cola", "coca cola", "pepsi", "mojo", "fanta", "sprite", "7up",
-                   "schweppes", "mountain dew", "mirinda", "clemon", "kinley"],
+                   "pran", "rc", "rc cola", "schweppes", "mountain dew", "mirinda", "clemon", "kinley"],
         "units": ["L", "ML"],
         "subcategories": {},
     },
@@ -1104,15 +1114,22 @@ CATEGORIES = {
         "group": "Personal Care",
         "keywords": ["bath soap", "bathing soap", "beauty soap", "body soap",
                      "soap bar", "bath bar", "soap", "সাবান", "body wash",
-                     "handwash", "hand wash"],
+                     "handwash", "hand wash", "cinthol"],
         "brands": ["lux", "lifebuoy", "dove", "tibet", "meril", "savlon",
-                   "dettol", "keya", "sandalina", "cute", "yardley", "rexona"],
+                   "dettol", "keya", "sandalina", "cute", "yardley", "rexona",
+                   "fresh", "godrej", "acnol", "lily", "akij", "aci"],
         "units": ["G", "KG", "ML", "L"],
         "subcategories": {
-            "beauty":          ["beauty", "body", "glow", "soft"],
-            "antibacterial":   ["antibacterial", "germ", "dettol", "savlon", "lifebuoy"],
-            "body_wash":       ["body wash"],
+            "neem":            ["neem", "নিম"],
+            "sandal":          ["sandal", "sandalwood", "চন্দন"],
+            "jasmine":         ["jasmine", "jasmin", "বেলি"],
+            "rose":            ["rose", "গোলাপ"],
+            "cool":            ["cool", "menthol", "ice"],
+            "lemon":           ["lemon", "lime", "লেবু"],
+            "body_wash":       ["body wash", "shower gel"],
             "handwash":        ["handwash", "hand wash"],
+            "antibacterial":   ["antibacterial", "germ", "dettol", "savlon", "lifebuoy"],
+            "beauty":          ["beauty", "body", "glow", "soft"],
         },
     },
     "shampoo": {
@@ -1196,6 +1213,7 @@ CATEGORIES = {
                      "laundry detergent", "fabric softener", "bleach",
                      "ডিটারজেন্ট"],
         "brands": ["surf excel", "rin", "wheel", "chaka", "tide", "ariel",
+                   "fresh", "orix", "persil", "aci", "vanish",
                    "jet", "keya", "shuvro", "shwapno", "fast wash", "attack"],
         "units": ["KG", "G", "L", "ML"],
         "subcategories": {
@@ -1246,7 +1264,7 @@ CATEGORIES = {
         "group": "Home Care & Cleaning",
         "keywords": ["tissue", "toilet paper", "kitchen towel", "facial tissue",
                      "napkin", "aluminum foil", "cling film", "garbage bag"],
-        "brands": ["kleenex", "fresh"],
+        "brands": ["bashundhara", "fresh", "fay", "partex", "kleenex"],
         "units": ["PCS", "G"],
         "subcategories": {},
     },
@@ -1302,18 +1320,76 @@ CATEGORIES = {
 }
 
 
-# Reverse lookups built once at import time
+# Bangla brand spellings -> canonical brand keys
+BRAND_ALIASES: dict[str, str] = {
+    "রূপচাঁদা": "rupchanda",
+    "তীর": "teer",
+    "ফ্রেশ": "fresh",
+    "প্রাণ": "pran",
+    "রাঁধুনী": "radhuni",
+    "রাধুনী": "radhuni",
+    "এসিআই": "aci",
+    "বসুন্ধরা": "bashundhara",
+    "আড়ং": "aarong",
+    "আড়ং": "aarong",
+    "মিল্ক ভিটা": "milk vita",
+    "মিল্কভিটা": "milk vita",
+    "ইস্পাহানি": "ispahani",
+    "ডানো": "dano",
+    "ডিপ্লোমা": "diploma",
+    "পুষ্টি": "pusti",
+    "ম্যাগি": "maggi",
+    "চাষী": "chashi",
+    "ইফাদ": "ifad",
+    "কোকোলা": "cocola",
+    "অলিম্পিক": "olympic",
+    "energy plus": "olympic",
+    "সুরেশ": "suresh",
+    "বাঘাবাড়ী": "baghabari",
+    "বাঘাবাড়ী": "baghabari",
+    "ফরচুন": "fortune",
+    "ডাবর": "dabur",
+    "নেসলে": "nestle",
+    "সেভলন": "savlon",
+    "স্যাভলন": "savlon",
+    "ডেটোল": "dettol",
+    "লাক্স": "lux",
+    "লাইফবয়": "lifebuoy",
+    "ডাভ": "dove",
+    "তিব্বত": "tibet",
+    "হুইল": "wheel",
+    "রিন": "rin",
+    "সার্ফ এক্সেল": "surf excel",
+    "হারপিক": "harpic",
+    "মোজো": "mojo",
+    "সানসিল্ক": "sunsilk",
+    "ড্যানিশ": "danish",
+    "রুচি": "ruchi",
+    "অলিম্পিয়া": "olympia",
+    "হাক্কানী": "haque",
+    "হক": "haque",
+    "finlays": "finlay",
+    "mr. noodles": "mr noodles",
+}
+
+CANONICAL_TO_ALIASES: dict[str, list[str]] = {}
+for _alias, _canon in BRAND_ALIASES.items():
+    CANONICAL_TO_ALIASES.setdefault(_canon, []).append(_alias)
+
+# Reverse lookups built once at import time: union of declared brands and all aliases
 ALL_BRANDS = sorted(
-    {b for c in CATEGORIES.values() for b in c["brands"]},
+    {b for c in CATEGORIES.values() for b in c["brands"]} | set(BRAND_ALIASES.keys()),
     key=len,
     reverse=True,  # match "milk vita" before "milk"
 )
 
-# Word-boundary patterns, compiled once. Substring matching would let a short
-# brand token false-match inside another word ("rin" in "spring", "bd" in
-# "abdul", "city" in "velocity"). \b...\b requires the brand to stand as a
-# whole word/phrase.
-_BRAND_PATTERNS = {b: re.compile(r"\b" + re.escape(b) + r"\b") for b in ALL_BRANDS}
+# Letter-boundary patterns for brands, compiled once. Uses letter boundary
+# (?<![a-zA-Z\u0980-\u09ff]) and (?![a-zA-Z\u0980-\u09ff]) so that both ASCII
+# and Bengali brands (with combining vowel marks) match whole words accurately.
+_BRAND_PATTERNS = {
+    b: re.compile(r"(?<![a-zA-Z\u0980-\u09ff])" + re.escape(b) + r"(?![a-zA-Z\u0980-\u09ff])", re.IGNORECASE)
+    for b in ALL_BRANDS
+}
 
 # Letter-boundary patterns for keywords, compiled once. Substring matching
 # would let short tokens false-match inside unrelated longer words ("motor"
@@ -1383,14 +1459,22 @@ def find_subcategory(category: str, text_lower: str) -> str | None:
 
 def find_brand(text_lower: str, category: str | None = None) -> str | None:
     """Match a known brand as a whole word. If category given, prefer brands
-    declared for it. Returns None when no vocabulary brand is present — we never
-    guess (a product-type word like "sunflower" is not a brand)."""
-    candidates = CATEGORIES[category]["brands"] if category and category in CATEGORIES else ALL_BRANDS
-    # match longest first to avoid "fresh" eating "fresh maida" before "rupchanda"
-    for b in sorted(candidates, key=len, reverse=True):
-        pat = _BRAND_PATTERNS.get(b) or re.compile(r"\b" + re.escape(b) + r"\b")
-        if pat.search(text_lower):
-            return b
+    declared for it and their aliases. Returns canonical brand name or None —
+    we never guess (a product-type word like "sunflower" is not a brand)."""
+    if category and category in CATEGORIES:
+        raw = CATEGORIES[category]["brands"]
+        expanded = set(raw)
+        for b in raw:
+            if b in CANONICAL_TO_ALIASES:
+                expanded.update(CANONICAL_TO_ALIASES[b])
+        candidates = sorted(expanded, key=len, reverse=True)
+    else:
+        candidates = ALL_BRANDS
+
+    for b in candidates:
+        pat = _BRAND_PATTERNS.get(b)
+        if pat and pat.search(text_lower):
+            return BRAND_ALIASES.get(b, b)
     return None
 
 

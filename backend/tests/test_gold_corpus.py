@@ -116,9 +116,9 @@ def test_gold_corpus_scorecard():
     report = "\n".join(lines)
     print("\n" + report)
 
-    # --- Ratchet floors: just below the 2026-07-12 baseline (see docstring).
+    # --- Ratchet floors: locked after vocabulary expansion and brand canonicalization.
     # Raise these when a matcher/vocabulary change improves the numbers.
-    assert card["wrong_merge_rate"] <= 0.02, report
-    assert card["recall"]["same"] >= 0.15, report
-    assert card["recall"]["different"] >= 0.60, report
+    assert card["wrong_merge_rate"] <= 0.015, report
+    assert card["recall"]["same"] >= 0.70, report
+    assert card["recall"]["different"] >= 0.65, report
     assert card["precision"]["same_bucket"] >= 0.55, report

@@ -18,8 +18,76 @@ def test_rupchanda_5l_variants_normalize_consistently():
 def test_bengali_numerals_and_units():
     n = normalize("রূপচাঁদা সয়াবিন তেল ৫ লিটার")
     assert n.category == "cooking_oil"
+    assert n.brand == "rupchanda"
+    assert "রূপচাঁদা" not in n.normalized_name
     assert n.base_unit_qty == 5000.0
     assert n.size_unit == "L"
+
+
+def test_bengali_brand_canonicalization():
+    teer = normalize("তীর আটা ২ কেজি")
+    assert teer.category == "flour"
+    assert teer.brand == "teer"
+    assert "তীর" not in teer.normalized_name
+
+    pran = normalize("প্রাণ গুঁড়া দুধ ৫০০ গ্রাম")
+    assert pran.category == "powdered_milk"
+    assert pran.brand == "pran"
+    assert "প্রাণ" not in pran.normalized_name
+
+
+def test_cross_category_brand_expansion():
+    salt = normalize("ACI Pure Salt 1kg")
+    assert salt.category == "salt"
+    assert salt.brand == "aci pure"
+
+    biscuit = normalize("Olympic Energy Plus Biscuits 300g")
+    assert biscuit.category == "biscuits"
+    assert biscuit.brand == "olympic"
+
+    milk = normalize("Fresh Liquid Milk 1 L")
+    assert milk.category == "milk"
+    assert milk.brand == "fresh"
+
+    noodles = normalize("Samyang 2x Spicy Hot Chicken Ramen 140g")
+    assert noodles.category == "noodles"
+    assert noodles.brand == "samyang"
+
+
+def test_fake_brand_bd_not_extracted_from_country_code():
+    pickle = normalize("Ahmed Mixed Pickle 400g Jar BD")
+    assert pickle.category == "pickles"
+    assert pickle.brand == "ahmed"
+
+
+def test_soap_variant_subcategories_prevent_mismatches():
+    from app.core.matcher import CandidateProduct, match
+
+    cool = normalize("Godrej Cinthol Cool Soap 100g")
+    lime = normalize("Godrej Cinthol Lime Soap 100g")
+
+    assert cool.category == "soap"
+    assert cool.subcategory == "cool"
+    assert cool.brand == "godrej"
+
+    assert lime.category == "soap"
+    assert lime.subcategory == "lemon"
+    assert lime.brand == "godrej"
+
+    # Matcher must not merge cool and lemon scents together as 'same'
+    cand = CandidateProduct(
+        id=1,
+        normalized_name=lime.normalized_name,
+        brand=lime.brand,
+        category=lime.category,
+        subcategory=lime.subcategory,
+        size_value=lime.size_value,
+        size_unit=lime.size_unit,
+        base_unit_qty=lime.base_unit_qty,
+        is_loose=lime.is_loose,
+    )
+    result = match(cool, [cand])
+    assert result.confidence < 0.85, f"Scents merged falsely with conf={result.confidence}"
 
 
 def test_loose_goods_flagged():

@@ -20,7 +20,7 @@ import unicodedata
 from dataclasses import asdict, dataclass
 from typing import Optional
 
-from .categories import find_brand, find_category, find_subcategory
+from .categories import CANONICAL_TO_ALIASES, find_brand, find_category, find_subcategory
 
 # --- Bangla numeral & unit translation -------------------------------------
 
@@ -37,6 +37,12 @@ BENGALI_UNIT_TO_EN = {
     "প্যাকেট": "pack",
     "ডজন":   "dozen",
 }
+
+# Letter-boundary patterns for Bengali units so "টা" does not false-match inside "আটা" or "বাটা"
+_BENGALI_UNIT_PATTERNS = [
+    (re.compile(r"(?<![a-zA-Zঀ-৿])" + re.escape(bn) + r"(?![a-zA-Zঀ-৿])"), en)
+    for bn, en in sorted(BENGALI_UNIT_TO_EN.items(), key=lambda x: len(x[0]), reverse=True)
+]
 
 # Unit canonicalization. We always normalize to ml / g / pcs for math.
 UNIT_ALIASES = {
@@ -121,8 +127,8 @@ class NormalizedProduct:
 def _translate_bangla(text: str) -> str:
     """Replace Bangla digits + common units with English equivalents."""
     text = text.translate(BENGALI_DIGITS)
-    for bn, en in BENGALI_UNIT_TO_EN.items():
-        text = text.replace(bn, " " + en + " ")
+    for pat, en in _BENGALI_UNIT_PATTERNS:
+        text = pat.sub(" " + en + " ", text)
     return text
 
 
@@ -202,7 +208,9 @@ def normalize(raw_name: str) -> NormalizedProduct:
     # still trigram-collide. Order tokens deterministically.
     tokens = cleaned_no_size.split()
     if brand:
-        brand_tokens = brand.split()
+        brand_tokens = set(brand.split())
+        for alias in CANONICAL_TO_ALIASES.get(brand, []):
+            brand_tokens.update(alias.split())
         tokens = [t for t in tokens if t not in brand_tokens]
     # Drop one-character noise and de-dup while preserving order
     seen: set[str] = set()
