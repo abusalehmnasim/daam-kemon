@@ -132,7 +132,7 @@ CATEGORIES = {
         "display": "Lentils (Dal)",
         "group": "Staples & Grains",
         "keywords": ["dal", "lentil", "lentils", "ডাল", "মসুর", "মুগ", "ছোলা",
-                     "motor", "মটর", "chickpea", "boot", "khesari", "anchor dal",
+                     "motor dal", "matar dal", "motor daal", "matar", "মটর", "chickpea", "boot", "khesari", "anchor dal",
                      "mash kalai", "maskalai", "black gram", "felon"],
         "brands": ["pran", "fresh", "teer", "radhuni", "acm", "aarong"],
         "units": ["KG", "G"],
@@ -142,7 +142,7 @@ CATEGORIES = {
             "chola":   ["chola", "chana", "chickpea", "boot", "ছোলা"],
             "khesari": ["khesari", "খেসারি"],
             "anchor":  ["anchor", "অ্যাঙ্কর"],
-            "motor":   ["motor", "মটর"],
+            "motor":   ["motor dal", "matar dal", "motor daal", "matar", "মটর"],
             "mash_kalai": ["mash kalai", "maskalai", "black gram", "মাষকলাই"],
             "felon":   ["felon", "ফেলন"],
         },
@@ -166,10 +166,10 @@ CATEGORIES = {
         "group": "Cooking Essentials",
         "keywords": [
             "soybean oil", "soyabean oil", "soya oil", "soybean", "soyabean",
-            "sunflower oil", "rice bran oil", "mustard oil", "palm oil",
+            "sunflower oil", "rice bran oil", "rice bran", "ricebran", "rice barn", "mustard oil", "palm oil",
             "cooking oil", "vegetable oil", "olive oil", "sesame oil",
             "til oil", "canola oil", "coconut oil", "blended oil", "mixed oil",
-            "তেল", "সয়াবিন", "সরিষার তেল", "সরিষা", "নারিকেল তেল"
+            "তেল", "সয়াবিন", "সরিষার তেল", "সরিষা", "নারিকেল তেল", "রাইস ব্রান"
         ],
         "brands": ["rupchanda", "fresh", "teer", "pusti", "veola", "mojo",
                    "radhuni", "acm", "bashundhara", "kings", "fortune",
@@ -179,7 +179,7 @@ CATEGORIES = {
         "subcategories": {
             "soybean":   ["soybean", "soyabean", "soya", "সয়াবিন"],
             "sunflower": ["sunflower"],
-            "rice_bran": ["rice bran"],
+            "rice_bran": ["rice bran", "ricebran", "rice barn", "রাইস ব্রান"],
             "mustard":   ["mustard", "সরিষা"],
             "palm":      ["palm"],
             "olive":     ["olive", "extra virgin"],
@@ -234,7 +234,7 @@ CATEGORIES = {
         "group": "Cooking Essentials",
         "keywords": ["honey", "modhu", "মধু"],
         "brands": ["pran", "dabur", "apis", "khaas food"],
-        "units": ["KG", "G"],
+        "units": ["KG", "G", "ML", "L"],
         "subcategories": {},
     },
     "salt": {
@@ -502,7 +502,7 @@ CATEGORIES = {
                      "doodh", "দুধ", "condensed milk", "evaporated milk"],
         "brands": ["pran", "arong", "aarong", "milk vita", "milkvita",
                    "farm fresh", "danish", "amul", "cowhead"],
-        "units": ["L", "ML"],
+        "units": ["L", "ML", "G"],
         "subcategories": {
             "uht":          ["uht"],
             "pasteurized":  ["pasteurized", "pasteurised"],
@@ -773,7 +773,7 @@ CATEGORIES = {
                      "pasta", "macaroni", "vermicelli", "semai"],
         "brands": ["mr. noodles", "mr noodles", "knorr", "maggi", "pran",
                    "doodles", "ifad", "cocola"],
-        "units": ["G"],
+        "units": ["G", "KG", "PCS"],
         "subcategories": {
             "instant": ["instant", "cup"],
             "egg":     ["egg"],
@@ -920,12 +920,13 @@ CATEGORIES = {
     "chocolate_candy": {
         "display": "Chocolate & Candy",
         "group": "Snacks & Confectionery",
-        "keywords": ["chocolate bar", "candy", "toffee", "chewing gum",
-                     "lozenge"],
-        "brands": ["cadbury", "nestle", "orion", "haldiram"],
+        "keywords": ["chocolate bar", "chocolate", "choco", "candy", "toffee",
+                     "chewing gum", "lozenge"],
+        "brands": ["cadbury", "nestle", "orion", "haldiram", "hershey's",
+                   "hersheys", "kitkat", "snickers", "mars", "dairy milk", "dairymilk"],
         "units": ["G", "PCS"],
         "subcategories": {
-            "chocolate": ["chocolate bar"],
+            "chocolate": ["chocolate bar", "chocolate", "choco"],
             "candy":     ["candy", "toffee", "lozenge"],
             "gum":       ["chewing gum"],
         },
@@ -989,7 +990,7 @@ CATEGORIES = {
                      "green tea", "চা", "চা পাতা"],
         "brands": ["ispahani", "taaza", "fresh", "kazi", "lipton", "halda valley",
                    "seylon", "danedar", "twinings", "vitacare"],
-        "units": ["G", "KG"],
+        "units": ["G", "KG", "PCS"],
         "subcategories": {
             "black":   ["black"],
             "green":   ["green"],
@@ -1012,8 +1013,9 @@ CATEGORIES = {
     "soft_drink": {
         "display": "Soft / Carbonated Drinks",
         "group": "Beverages",
-        "keywords": ["soft drink", "cola", "carbonated"],
-        "brands": ["coca-cola", "coca cola", "pepsi", "mojo", "fanta", "sprite", "7up"],
+        "keywords": ["soft drink", "cola", "carbonated", "soda", "schweppes", "carbonated drink", "zero sugar"],
+        "brands": ["coca-cola", "coca cola", "pepsi", "mojo", "fanta", "sprite", "7up",
+                   "schweppes", "mountain dew", "mirinda", "clemon", "kinley"],
         "units": ["L", "ML"],
         "subcategories": {},
     },
@@ -1105,7 +1107,7 @@ CATEGORIES = {
                      "handwash", "hand wash"],
         "brands": ["lux", "lifebuoy", "dove", "tibet", "meril", "savlon",
                    "dettol", "keya", "sandalina", "cute", "yardley", "rexona"],
-        "units": ["G", "KG", "ML"],
+        "units": ["G", "KG", "ML", "L"],
         "subcategories": {
             "beauty":          ["beauty", "body", "glow", "soft"],
             "antibacterial":   ["antibacterial", "germ", "dettol", "savlon", "lifebuoy"],
@@ -1210,7 +1212,7 @@ CATEGORIES = {
         "keywords": ["dishwash", "dish wash", "vim", "trix", "scrubber",
                      "dish soap"],
         "brands": ["vim", "trix"],
-        "units": ["ML", "G", "PCS"],
+        "units": ["ML", "G", "PCS", "L", "KG"],
         "subcategories": {
             "bar":       ["dish wash bar"],
             "liquid":    ["dish wash liquid"],
@@ -1313,16 +1315,36 @@ ALL_BRANDS = sorted(
 # whole word/phrase.
 _BRAND_PATTERNS = {b: re.compile(r"\b" + re.escape(b) + r"\b") for b in ALL_BRANDS}
 
+# Letter-boundary patterns for keywords, compiled once. Substring matching
+# would let short tokens false-match inside unrelated longer words ("motor"
+# in "motorcycle", "cola" in "chocolate", "lau" in "laundry", "shak" in "shake",
+# "tea" in "steamer", "rice" in "price"). The boundary (?<![a-zA-Z\u0980-\u09ff])
+# and (?![a-zA-Z\u0980-\u09ff]) ensures tokens stand as distinct words/stems while
+# still matching when adjacent to numbers or punctuation (e.g. "Atta1kg").
+_KEYWORD_PATTERNS = {
+    key: [
+        (kw, re.compile(r"(?<![a-zA-Z\u0980-\u09ff])" + re.escape(kw) + r"(?![a-zA-Z\u0980-\u09ff])", re.IGNORECASE))
+        for kw in cfg["keywords"]
+    ]
+    for key, cfg in CATEGORIES.items()
+}
 
-def find_category(text_lower: str) -> str | None:
+
+def find_category(text_lower: str, size_unit: str | None = None) -> str | None:
     """Return the best-matching category key, or None.
 
     Heuristic: pick the category with the most distinct keyword hits.
     Ties broken by total character overlap (longer keywords win).
+    When size_unit is provided, categories whose declared units do not allow
+    that unit are disqualified (e.g. 3.0L cooker cannot match rice).
     """
     best, best_score = None, 0
-    for key, cfg in CATEGORIES.items():
-        hits = [kw for kw in cfg["keywords"] if kw in text_lower]
+    for key, pats in _KEYWORD_PATTERNS.items():
+        if size_unit:
+            allowed = CATEGORIES[key].get("units")
+            if allowed and size_unit not in allowed:
+                continue
+        hits = [kw for kw, pat in pats if pat.search(text_lower)]
         if not hits:
             continue
         score = len(hits) * 10 + sum(len(h) for h in hits)

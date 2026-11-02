@@ -191,7 +191,7 @@ def normalize(raw_name: str) -> NormalizedProduct:
     cleaned = _clean(raw_name)
     cleaned_no_size = _clean(pre_no_size)
 
-    category = find_category(cleaned)
+    category = find_category(cleaned, size_unit=size_unit)
     subcategory = find_subcategory(category, cleaned) if category else None
     brand = find_brand(cleaned, category)
 

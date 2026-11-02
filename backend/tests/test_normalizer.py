@@ -88,3 +88,33 @@ def test_product_type_word_is_not_a_brand():
     assert n.category == "cooking_oil"
     assert n.subcategory == "sunflower"
     assert n.brand is None
+
+
+def test_keyword_collision_regression_guards():
+    # 1. Motorcycle oil must not match lentils ("motor")
+    moto = normalize("Mobil 1 Racing 4T 10W-40 Full Synthetic Motorcycle engine oil - 1 Liter")
+    assert moto.category != "lentils"
+    assert moto.category is None
+
+    # 2. Rice cooker appliance must not match grain rice ("rice") with unit L
+    cooker = normalize("Vision Rice Cooker with Steamer- 3.0 L REL- Delight Pot SS Body")
+    assert cooker.category != "rice"
+    assert cooker.category is None
+
+    # 3. Rice bran oil/health drink must resolve to cooking_oil, not rice
+    rbo = normalize("Fortune Rice Bran Health 2ltr bd.")
+    assert rbo.category == "cooking_oil"
+    assert rbo.subcategory == "rice_bran"
+    assert rbo.brand == "fortune"
+
+    # 4. Soda with "Zero Sugar" must resolve to soft_drink, not sugar
+    soda = normalize("Schweppes Lime Soda Zero Sugar 330Ml. TH")
+    assert soda.category == "soft_drink"
+    assert soda.category != "sugar"
+
+    # 5. Canned fish in oil (e.g. 185g) must resolve to canned, not cooking_oil
+    tuna = normalize("American Natural Tuna Chunk Sunflower Oil 185 gm")
+    assert tuna.category == "canned"
+    assert tuna.subcategory == "fish"
+    assert tuna.category != "cooking_oil"
+
