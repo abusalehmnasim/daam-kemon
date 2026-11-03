@@ -41,12 +41,23 @@ export function load(): BasketEntry[] {
 export function save(entries: BasketEntry[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(entries));
+  window.dispatchEvent(new CustomEvent("daamkemon:basket", { detail: entries }));
 }
 
 export function add(entry: Omit<BasketEntry, "id">): BasketEntry[] {
   const cur = load();
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   cur.push({ ...entry, id });
+  save(cur);
+  return cur;
+}
+
+export function addMultiple(entries: Omit<BasketEntry, "id">[]): BasketEntry[] {
+  const cur = load();
+  for (const e of entries) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    cur.push({ ...e, id });
+  }
   save(cur);
   return cur;
 }

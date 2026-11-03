@@ -4,6 +4,7 @@ import type { AggregatedGroup, AggregatedOffering } from "@/types";
 import { api } from "@/lib/api";
 import { add as addToBasket } from "@/lib/basketStore";
 import { productSlug } from "@/lib/slug";
+import { StoreBadge } from "@/components/StoreBadge";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -61,6 +62,17 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
     [group.offerings]
   );
 
+  const inStockOfferings = useMemo(() => rows.filter((r) => r.in_stock), [rows]);
+  const highestPrice = useMemo(
+    () => (inStockOfferings.length > 0 ? Math.max(...inStockOfferings.map((r) => r.price)) : 0),
+    [inStockOfferings]
+  );
+
+  const maxSavings = useMemo(() => {
+    if (!group.cheapest_price || highestPrice <= group.cheapest_price) return 0;
+    return highestPrice - group.cheapest_price;
+  }, [group.cheapest_price, highestPrice]);
+
   // Card thumbnail: first offering (cheapest-first) that has a scraped image.
   const thumb = useMemo(() => rows.find((o) => o.image_url)?.image_url ?? null, [rows]);
 
@@ -75,16 +87,16 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
   };
 
   return (
-    <article className="overflow-hidden rounded-card border border-line bg-card">
-      <header className="flex items-center gap-3.5 border-b border-line px-4 py-3.5">
+    <article className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm transition-shadow hover:shadow-md">
+      <header className="flex items-center gap-3.5 border-b border-line/80 bg-paper/30 px-4 py-3.5">
         {thumb && (
-          <div className="hidden h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-white p-1 sm:flex">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white p-1 shadow-xs">
             {/* eslint-disable-next-line @next/next/no-img-element -- scraped store-CDN images span arbitrary domains */}
             <img
               src={thumb}
               alt=""
-              width={48}
-              height={48}
+              width={56}
+              height={56}
               loading="lazy"
               referrerPolicy="no-referrer"
               className="h-full w-full object-contain"
@@ -92,22 +104,31 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[15px] font-semibold tracking-tight text-ink">
-            {group.display_name}
-          </h2>
-          <p className="mt-0.5 text-xs text-faint">
-            {group.offerings.length} offer{group.offerings.length === 1 ? "" : "s"} · {storeCount}{" "}
-            store{storeCount === 1 ? "" : "s"}
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="truncate text-base font-bold tracking-tight text-ink">
+              {group.display_name}
+            </h2>
+            {maxSavings >= 10 && (
+              <span className="inline-flex items-center rounded-full bg-save-weak px-2 py-0.5 text-[11px] font-bold text-save-dark ring-1 ring-save/20">
+                ৳{Math.round(maxSavings)} পর্যন্ত সাশ্রয়
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-xs text-muted">
+            {group.offerings.length} {group.offerings.length === 1 ? "offer" : "offers"} across{" "}
+            {storeCount} {storeCount === 1 ? "store" : "stores"}
           </p>
         </div>
         {group.cheapest_price != null && (
           <div className="shrink-0 text-right">
-            <div className="text-[10px] uppercase tracking-wide text-faint">cheapest</div>
-            <div className="tnum text-lg font-semibold leading-tight text-save">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-save">
+              Cheapest
+            </div>
+            <div className="tnum text-xl font-extrabold leading-tight text-save">
               {taka(group.cheapest_price)}
             </div>
             {basis && (
-              <div className="tnum text-[11px] text-muted">
+              <div className="tnum text-[11px] font-medium text-muted">
                 {unitPrice(group.cheapest_price, basis)}
               </div>
             )}
@@ -115,28 +136,38 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         )}
       </header>
 
-      {/* Mobile-first rows: no horizontal scroll, no fixed columns. Each row
-          surfaces store · price · unit price · savings up front; brand,
-          match confidence and actions wrap below on narrow screens. */}
+      {/* Mobile-first offerings list */}
       <ul className="divide-y divide-line/60">
         {rows.map((o) => {
           const isCheapest = o.in_stock && o.price === group.cheapest_price;
+          const savingsVsHighest =
+            highestPrice > o.price && isCheapest ? highestPrice - o.price : 0;
+
           return (
             <li
               key={o.store_product_id}
               className={`px-4 py-3 text-sm transition-colors ${
-                isCheapest ? "bg-save-weak/60" : "hover:bg-line/40"
+                isCheapest ? "bg-save-weak/40" : "hover:bg-line/30"
               } ${o.in_stock ? "" : "opacity-60"}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
+                    <StoreBadge
+                      storeName={o.store_name}
+                      displayName={o.store_display_name}
+                      size="sm"
+                    />
                     {isCheapest && (
-                      <span className="shrink-0 rounded-full bg-save px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                        Cheapest
+                      <span className="shrink-0 rounded-full bg-save px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        Lowest Price
                       </span>
                     )}
-                    <span className="truncate font-medium text-ink">{o.store_display_name}</span>
+                    {savingsVsHighest >= 10 && (
+                      <span className="hidden shrink-0 text-[11px] font-medium text-save-dark sm:inline-block">
+                        (৳{Math.round(savingsVsHighest)} সাশ্রয়)
+                      </span>
+                    )}
                     {o.is_sponsored && (
                       <span className="shrink-0 rounded bg-line/70 px-1 py-px text-[10px] text-muted">
                         ad
@@ -144,12 +175,14 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                     )}
                     <ConfidenceTag confidence={o.match_confidence} />
                   </div>
-                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
-                    {o.brand && <span className="shrink-0 capitalize text-ink/80">{o.brand}</span>}
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                    {o.brand && (
+                      <span className="shrink-0 font-medium capitalize text-ink/80">{o.brand}</span>
+                    )}
                     {o.product_id != null ? (
                       <Link
                         href={`/product/${productSlug({ id: o.product_id, name: o.product_name })}`}
-                        className="truncate underline-offset-2 hover:text-ink hover:underline"
+                        className="truncate underline-offset-2 hover:text-brand hover:underline"
                         title={`See all prices for ${o.product_name}`}
                       >
                         {o.store_product_name}
@@ -164,7 +197,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                   {o.in_stock ? (
                     <>
                       <div
-                        className={`tnum text-[15px] font-semibold leading-tight ${
+                        className={`tnum text-[15px] font-bold leading-tight ${
                           isCheapest ? "text-save" : "text-ink"
                         }`}
                       >
@@ -182,27 +215,44 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                       )}
                     </>
                   ) : (
-                    <span className="text-xs text-faint">Out of stock</span>
+                    <span className="text-xs font-medium text-faint">Out of stock</span>
                   )}
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-end gap-2">
+              <div className="mt-2.5 flex items-center justify-end gap-2">
                 {o.in_stock && (
                   <button
                     onClick={() => handleAdd(o)}
-                    className="h-9 rounded-md border border-line px-3 text-xs font-medium text-ink transition-colors hover:border-line-strong hover:bg-line/50"
+                    className={`h-8 rounded-lg px-3 text-xs font-semibold transition-all active:scale-95 ${
+                      addedKey === `${o.store_product_id}`
+                        ? "bg-save text-white shadow-xs"
+                        : "border border-line bg-card text-ink hover:border-brand hover:bg-brand/5 hover:text-brand"
+                    }`}
                   >
-                    {addedKey === `${o.store_product_id}` ? "Added ✓" : "Add"}
+                    {addedKey === `${o.store_product_id}` ? "Added ✓" : "+ Add to Basket"}
                   </button>
                 )}
                 <a
                   href={api.clickUrl(o.store_product_id)}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  className="inline-flex h-9 items-center px-2 text-xs font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-card px-2.5 text-xs font-medium text-muted transition-colors hover:border-line-strong hover:text-ink"
                 >
-                  Visit
+                  <span>Visit</span>
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                    />
+                  </svg>
                 </a>
               </div>
             </li>
