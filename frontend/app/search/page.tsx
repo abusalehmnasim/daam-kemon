@@ -20,7 +20,6 @@ function SearchInner() {
   const [loading, setLoading] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 
-  // Load the category tree once for the filter sidebar
   useEffect(() => {
     api
       .categories()
@@ -70,10 +69,11 @@ function SearchInner() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-line bg-card p-4 shadow-xs">
+      {/* Search Header Container */}
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-5 backdrop-blur-2xl shadow-xl">
         <SearchBar initial={q} />
 
-        <div className="mt-3">
+        <div className="mt-4">
           <ActiveFilters
             q={q}
             category={activeCategory}
@@ -83,7 +83,7 @@ function SearchInner() {
         </div>
 
         {activeCategory && activeCategory.subcategories.length > 0 && (
-          <div className="mt-3 border-t border-line/60 pt-3">
+          <div className="mt-4 border-t border-white/10 pt-4">
             <SubcategoryStrip
               category={activeCategory}
               activeKey={subcategoryKey}
@@ -94,51 +94,41 @@ function SearchInner() {
       </div>
 
       {data && (
-        <div className="flex items-center justify-between text-xs text-muted">
+        <div className="flex items-center justify-between text-xs text-white/60">
           <div>
-            Showing <strong className="text-ink">{data.total_groups}</strong>{" "}
+            Showing <strong className="text-white">{data.total_groups}</strong>{" "}
             {data.total_groups === 1 ? "product group" : "product groups"}
             {q ? <> for &ldquo;{q}&rdquo;</> : null}
           </div>
-          <span className="rounded-full bg-save-weak px-2 py-0.5 text-[11px] font-bold text-save-dark">
+          <span className="rounded-full bg-save px-2.5 py-0.5 text-xs font-black text-white shadow-xs">
             Sorted Cheapest First
           </span>
         </div>
       )}
 
       {loading && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted">
-            <span className="h-2 w-2 rounded-full bg-brand animate-ping" />
-            <span>Searching across 6 supermarkets…</span>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs font-bold text-white/60">
+            <span className="h-2 w-2 rounded-full bg-orange-400 animate-ping" />
+            <span>Comparing across 6 supermarkets live…</span>
           </div>
           <div className="grid gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-44 animate-pulse rounded-2xl border border-line bg-card" />
+              <div
+                key={i}
+                className="h-44 animate-pulse rounded-3xl border border-white/10 bg-white/5"
+              />
             ))}
           </div>
         </div>
       )}
 
       {error && (
-        <div className="space-y-3 rounded-2xl border border-error/30 bg-card p-6 text-sm text-muted">
+        <div className="space-y-3 rounded-3xl border border-error/40 bg-black/40 p-6 text-sm text-white/70 backdrop-blur-xl">
           <div className="flex items-center gap-2 text-error">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-              />
-            </svg>
-            <p className="font-bold text-ink">Search failed</p>
+            <p className="font-bold text-white">Search failed</p>
           </div>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-white/50">
             {error.includes("timed out")
               ? "The search server is waking up. Please give it a few seconds and try again."
               : "Unable to complete search. Please retry."}
@@ -146,14 +136,14 @@ function SearchInner() {
           <button
             type="button"
             onClick={() => setRetryKey((k) => k + 1)}
-            className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-brand-dark"
+            className="rounded-full bg-white px-5 py-2 text-xs font-black text-black shadow-lg hover:bg-orange-100"
           >
             Retry Search
           </button>
         </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {data?.groups.map((g, i) => (
           <AggregatedGroupCard
             key={`${g.category}-${g.subcategory ?? ""}-${g.size_value ?? ""}-${i}`}
@@ -162,24 +152,9 @@ function SearchInner() {
         ))}
 
         {data && data.groups.length === 0 && !loading && (
-          <div className="space-y-3 rounded-2xl border border-line bg-card px-4 py-12 text-center text-sm text-muted">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-paper text-muted">
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                />
-              </svg>
-            </div>
-            <p className="font-bold text-ink text-base">No matches found</p>
-            <p className="text-xs text-muted max-w-sm mx-auto">
+          <div className="space-y-4 rounded-3xl border border-white/10 bg-black/30 px-6 py-16 text-center text-sm text-white/70 backdrop-blur-xl">
+            <p className="font-display text-xl font-black text-white">No matches found</p>
+            <p className="text-xs text-white/50 max-w-sm mx-auto">
               We couldn&apos;t find equivalent listings for this search term. Try searching for
               broader terms like &ldquo;oil&rdquo;, &ldquo;rice&rdquo;, &ldquo;dal&rdquo;, or
               &ldquo;eggs&rdquo;.
@@ -187,9 +162,9 @@ function SearchInner() {
             <div className="pt-2">
               <Link
                 href="/categories"
-                className="inline-flex rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-brand-dark"
+                className="inline-flex rounded-full bg-white px-6 py-3 text-xs font-black text-black shadow-lg hover:bg-orange-100"
               >
-                Browse All Categories →
+                Browse All Categories ›
               </Link>
             </div>
           </div>
@@ -214,7 +189,7 @@ function ActiveFilters({
   const sub = category?.subcategories.find((s) => s.key === subcategoryKey);
   return (
     <div className="flex items-center flex-wrap gap-2 text-xs">
-      <span className="font-medium text-muted">Filters:</span>
+      <span className="font-semibold text-white/40">Filters:</span>
       {category && (
         <FilterChip
           label={category.display}
@@ -225,7 +200,7 @@ function ActiveFilters({
       {(category || subcategoryKey) && (
         <Link
           href={q ? `/search?q=${encodeURIComponent(q)}` : "/categories"}
-          className="text-xs text-faint underline underline-offset-2 hover:text-ink"
+          className="text-xs text-white/40 underline underline-offset-2 hover:text-white"
         >
           Clear filters
         </Link>
@@ -236,11 +211,11 @@ function ActiveFilters({
 
 function FilterChip({ label, removeHref }: { label: string; removeHref: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-xs font-semibold text-ink">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white">
       <span>{label}</span>
       <Link
         href={removeHref}
-        className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-muted hover:bg-line hover:text-ink"
+        className="flex h-4 w-4 items-center justify-center rounded-full text-white/60 hover:bg-white/20 hover:text-white"
         aria-label={`Remove ${label}`}
       >
         ×
@@ -259,14 +234,14 @@ function SubcategoryStrip({
   buildHref: (o: { category?: string | null; subcategory?: string | null }) => string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="text-faint">Narrow:</span>
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-white/40 font-semibold">Subcategory:</span>
       <Link
         href={buildHref({ subcategory: null })}
-        className={`rounded-full px-2.5 py-1 transition-colors ${
+        className={`rounded-full px-3 py-1 transition-colors ${
           !activeKey
-            ? "bg-brand text-white font-bold shadow-xs"
-            : "border border-line text-muted hover:border-line-strong hover:text-ink"
+            ? "bg-white text-black font-black shadow-sm"
+            : "border border-white/15 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
         }`}
       >
         All
@@ -275,10 +250,10 @@ function SubcategoryStrip({
         <Link
           key={sc.key}
           href={buildHref({ subcategory: sc.key })}
-          className={`rounded-full px-2.5 py-1 transition-colors ${
+          className={`rounded-full px-3 py-1 transition-colors ${
             activeKey === sc.key
-              ? "bg-brand text-white font-bold shadow-xs"
-              : "border border-line text-muted hover:border-line-strong hover:text-ink"
+              ? "bg-white text-black font-black shadow-sm"
+              : "border border-white/15 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
           }`}
         >
           {sc.display}
@@ -290,7 +265,7 @@ function SubcategoryStrip({
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-faint">Loading…</p>}>
+    <Suspense fallback={<p className="text-sm text-white/50">Loading…</p>}>
       <SearchInner />
     </Suspense>
   );

@@ -25,15 +25,15 @@ export function SiteNav() {
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-colors ${
+            className={`relative flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
               active
-                ? "bg-card font-semibold text-ink shadow-sm ring-1 ring-line"
-                : "text-muted hover:bg-line/50 hover:text-ink"
+                ? "bg-white text-black shadow-md scale-105"
+                : "text-white/70 hover:bg-white/10 hover:text-white"
             }`}
           >
             <span>{l.label}</span>
             {isBasket && totalCount > 0 && (
-              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-save px-1.5 text-[11px] font-bold text-white shadow-sm">
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-save px-1.5 text-[10px] font-black text-white shadow-xs">
                 {totalCount}
               </span>
             )}

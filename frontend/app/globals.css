@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
@@ -11,26 +11,26 @@ html {
 }
 
 body {
-  background: #f5f4f0;
-  color: #1a1b1d;
+  background: #0d0a08;
+  color: #ffffff;
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Bengali conjuncts + matra need more vertical room than Latin. */
   line-height: 1.6;
 }
 
-/* Prices and any aligned figures use tabular numerals so columns line up. */
+/* Prices and aligned figures use tabular numerals */
 .tnum {
   font-variant-numeric: tabular-nums;
 }
 
-/* One considered focus style everywhere — coral to match the brand. */
+/* One considered focus style everywhere */
 :focus-visible {
-  outline: 2px solid #cf4e2b;
+  outline: 2px solid #ea580c;
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #fce0d3;
+  background: #ea580c;
+  color: #ffffff;
 }

@@ -16,16 +16,16 @@ export function FloatingBasketPill() {
   return (
     <aside
       aria-label="Quick Basket"
-      className="fixed bottom-16 left-0 right-0 z-30 px-4 sm:bottom-6"
+      className="fixed bottom-16 left-0 right-0 z-40 px-4 sm:bottom-6"
     >
-      <div className="mx-auto flex max-w-xl items-center justify-between gap-3 rounded-2xl border border-save/30 bg-card p-3 shadow-xl ring-1 ring-black/5 transition-transform animate-in fade-in slide-in-from-bottom-3">
+      <div className="mx-auto flex max-w-xl items-center justify-between gap-4 rounded-3xl border border-white/20 bg-[#1A120E]/90 p-3.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 transition-transform animate-in fade-in slide-in-from-bottom-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-save-weak text-save">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-save/20 text-save-bright">
             <svg
               className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={2}
+              strokeWidth={2.2}
               stroke="currentColor"
             >
               <path
@@ -36,36 +36,24 @@ export function FloatingBasketPill() {
             </svg>
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-ink">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-white">
                 {totalCount} {totalCount === 1 ? "item" : "items"} in basket
               </span>
-              <span className="hidden rounded-full bg-save px-1.5 py-0.5 text-[10px] font-semibold text-white sm:inline-block">
-                Smart Split
+              <span className="rounded-full bg-save px-2 py-0.5 text-[10px] font-extrabold text-white">
+                Multi-Store Split
               </span>
             </div>
-            <p className="text-xs text-muted">Find cheapest store & best split delivery</p>
+            <p className="text-xs text-white/60">Find cheapest store & best split delivery</p>
           </div>
         </div>
 
         <Link
           href="/basket"
-          className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-save px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-save-dark active:scale-95"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-xs font-black text-black shadow-lg transition-all hover:bg-orange-100 hover:scale-105 active:scale-95"
         >
           <span>Optimize</span>
-          <svg
-            className="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-            />
-          </svg>
+          <span>›</span>
         </Link>
       </div>
     </aside>

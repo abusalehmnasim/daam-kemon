@@ -15,20 +15,20 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-card/95 backdrop-blur-md sm:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#0E0A08]/90 backdrop-blur-2xl sm:hidden"
     >
-      <div className="grid grid-cols-4 items-center py-1.5">
+      <div className="grid grid-cols-3 items-center py-2">
         <Link
           href="/"
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-center transition-colors ${
-            isExplore ? "font-semibold text-brand" : "text-muted hover:text-ink"
+          className={`flex flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
+            isExplore ? "font-bold text-orange-400" : "text-white/60 hover:text-white"
           }`}
         >
           <svg
             className="h-5 w-5"
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={isExplore ? 2.2 : 1.8}
+            strokeWidth={isExplore ? 2.5 : 1.8}
             stroke="currentColor"
           >
             <path
@@ -41,36 +41,16 @@ export function MobileBottomNav() {
         </Link>
 
         <Link
-          href="/#deals"
-          className="flex flex-col items-center justify-center gap-0.5 py-1 text-center text-muted transition-colors hover:text-ink"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.8}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
-            />
-          </svg>
-          <span className="text-[10px]">Top Drops</span>
-        </Link>
-
-        <Link
           href="/categories"
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-center transition-colors ${
-            isCategories ? "font-semibold text-brand" : "text-muted hover:text-ink"
+          className={`flex flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
+            isCategories ? "font-bold text-orange-400" : "text-white/60 hover:text-white"
           }`}
         >
           <svg
             className="h-5 w-5"
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={isCategories ? 2.2 : 1.8}
+            strokeWidth={isCategories ? 2.5 : 1.8}
             stroke="currentColor"
           >
             <path
@@ -84,8 +64,8 @@ export function MobileBottomNav() {
 
         <Link
           href="/basket"
-          className={`relative flex flex-col items-center justify-center gap-0.5 py-1 text-center transition-colors ${
-            isBasket ? "font-semibold text-brand" : "text-muted hover:text-ink"
+          className={`relative flex flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
+            isBasket ? "font-bold text-orange-400" : "text-white/60 hover:text-white"
           }`}
         >
           <div className="relative">
@@ -93,7 +73,7 @@ export function MobileBottomNav() {
               className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={isBasket ? 2.2 : 1.8}
+              strokeWidth={isBasket ? 2.5 : 1.8}
               stroke="currentColor"
             >
               <path
@@ -103,7 +83,7 @@ export function MobileBottomNav() {
               />
             </svg>
             {totalCount > 0 && (
-              <span className="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-save px-1 text-[9px] font-bold text-white shadow">
+              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-save px-1 text-[9px] font-black text-white shadow">
                 {totalCount}
               </span>
             )}

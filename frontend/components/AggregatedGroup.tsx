@@ -13,8 +13,6 @@ function taka(n: number | null | undefined): string {
   return "৳" + Math.round(n).toLocaleString("en-US");
 }
 
-// Unit-price basis for the whole group (size is shared across its offerings):
-// price ÷ this divisor gives ৳/L, ৳/kg or ৳/pc. Frontend-computed, no API field.
 function unitBasis(group: AggregatedGroup): { divisor: number; label: string } | null {
   const v = group.size_value;
   if (!v || v <= 0 || !group.size_unit) return null;
@@ -38,7 +36,7 @@ function ConfidenceTag({ confidence }: { confidence: number | null }) {
   const label = confidence >= 0.85 ? "brand match" : confidence >= 0.7 ? "category" : "approx";
   return (
     <span
-      className="rounded bg-line/70 px-1 py-px text-[10px] font-medium text-muted"
+      className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-white/60"
       title="Match confidence"
     >
       {label}
@@ -50,7 +48,6 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
   const [addedKey, setAddedKey] = useState<string | null>(null);
   const basis = useMemo(() => unitBasis(group), [group]);
 
-  // Flat, cheapest-first: in-stock by price, then out-of-stock by price.
   const rows = useMemo(() => {
     return [...group.offerings].sort(
       (a, b) => Number(!a.in_stock) - Number(!b.in_stock) || a.price - b.price
@@ -73,7 +70,6 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
     return highestPrice - group.cheapest_price;
   }, [group.cheapest_price, highestPrice]);
 
-  // Card thumbnail: first offering (cheapest-first) that has a scraped image.
   const thumb = useMemo(() => rows.find((o) => o.image_url)?.image_url ?? null, [rows]);
 
   const handleAdd = (off: AggregatedOffering) => {
@@ -87,11 +83,11 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
   };
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm transition-shadow hover:shadow-md">
-      <header className="flex items-center gap-3.5 border-b border-line/80 bg-paper/30 px-4 py-3.5">
+    <article className="overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#1C120C]/90 via-[#140C08]/95 to-[#0D0704] text-white shadow-xl backdrop-blur-2xl transition-all hover:border-white/25 hover:shadow-2xl">
+      <header className="flex items-center gap-4 border-b border-white/10 bg-black/40 px-5 py-4">
         {thumb && (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white p-1 shadow-xs">
-            {/* eslint-disable-next-line @next/next/no-img-element -- scraped store-CDN images span arbitrary domains */}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 p-1 backdrop-blur-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={thumb}
               alt=""
@@ -99,36 +95,36 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
               height={56}
               loading="lazy"
               referrerPolicy="no-referrer"
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain filter drop-shadow-md"
             />
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-base font-bold tracking-tight text-ink">
+            <h2 className="truncate font-display text-lg font-bold tracking-tight text-white">
               {group.display_name}
             </h2>
             {maxSavings >= 10 && (
-              <span className="inline-flex items-center rounded-full bg-save-weak px-2 py-0.5 text-[11px] font-bold text-save-dark ring-1 ring-save/20">
+              <span className="inline-flex items-center rounded-full bg-save px-2.5 py-0.5 text-xs font-black text-white shadow-xs">
                 ৳{Math.round(maxSavings)} পর্যন্ত সাশ্রয়
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-muted">
+          <p className="mt-0.5 text-xs text-white/50">
             {group.offerings.length} {group.offerings.length === 1 ? "offer" : "offers"} across{" "}
             {storeCount} {storeCount === 1 ? "store" : "stores"}
           </p>
         </div>
         {group.cheapest_price != null && (
           <div className="shrink-0 text-right">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-save">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-save-bright">
               Cheapest
             </div>
-            <div className="tnum text-xl font-extrabold leading-tight text-save">
+            <div className="tnum text-2xl font-black leading-tight text-white">
               {taka(group.cheapest_price)}
             </div>
             {basis && (
-              <div className="tnum text-[11px] font-medium text-muted">
+              <div className="tnum text-[11px] font-medium text-white/50">
                 {unitPrice(group.cheapest_price, basis)}
               </div>
             )}
@@ -136,8 +132,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
         )}
       </header>
 
-      {/* Mobile-first offerings list */}
-      <ul className="divide-y divide-line/60">
+      <ul className="divide-y divide-white/10">
         {rows.map((o) => {
           const isCheapest = o.in_stock && o.price === group.cheapest_price;
           const savingsVsHighest =
@@ -146,43 +141,43 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
           return (
             <li
               key={o.store_product_id}
-              className={`px-4 py-3 text-sm transition-colors ${
-                isCheapest ? "bg-save-weak/40" : "hover:bg-line/30"
-              } ${o.in_stock ? "" : "opacity-60"}`}
+              className={`px-5 py-3.5 text-sm transition-colors ${
+                isCheapest ? "bg-save-weak/5 border-l-2 border-save" : "hover:bg-white/5"
+              } ${o.in_stock ? "" : "opacity-50"}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     <StoreBadge
                       storeName={o.store_name}
                       displayName={o.store_display_name}
                       size="sm"
                     />
                     {isCheapest && (
-                      <span className="shrink-0 rounded-full bg-save px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                      <span className="shrink-0 rounded-full bg-save px-2 py-0.5 text-[10px] font-black text-white shadow-xs">
                         Lowest Price
                       </span>
                     )}
                     {savingsVsHighest >= 10 && (
-                      <span className="hidden shrink-0 text-[11px] font-medium text-save-dark sm:inline-block">
+                      <span className="hidden shrink-0 text-xs font-bold text-save-bright sm:inline-block">
                         (৳{Math.round(savingsVsHighest)} সাশ্রয়)
                       </span>
                     )}
                     {o.is_sponsored && (
-                      <span className="shrink-0 rounded bg-line/70 px-1 py-px text-[10px] text-muted">
+                      <span className="shrink-0 rounded bg-white/10 px-1.5 py-px text-[10px] text-white/50">
                         ad
                       </span>
                     )}
                     <ConfidenceTag confidence={o.match_confidence} />
                   </div>
-                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-white/60">
                     {o.brand && (
-                      <span className="shrink-0 font-medium capitalize text-ink/80">{o.brand}</span>
+                      <span className="shrink-0 font-bold capitalize text-white/90">{o.brand}</span>
                     )}
                     {o.product_id != null ? (
                       <Link
                         href={`/product/${productSlug({ id: o.product_id, name: o.product_name })}`}
-                        className="truncate underline-offset-2 hover:text-brand hover:underline"
+                        className="truncate underline-offset-2 hover:text-orange-300 hover:underline"
                         title={`See all prices for ${o.product_name}`}
                       >
                         {o.store_product_name}
@@ -197,37 +192,37 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                   {o.in_stock ? (
                     <>
                       <div
-                        className={`tnum text-[15px] font-bold leading-tight ${
-                          isCheapest ? "text-save" : "text-ink"
+                        className={`tnum text-base font-black leading-tight ${
+                          isCheapest ? "text-save-bright" : "text-white"
                         }`}
                       >
                         {taka(o.price)}
                       </div>
                       {o.original_price && o.original_price > o.price ? (
-                        <div className="tnum text-xs text-faint line-through">
+                        <div className="tnum text-xs text-white/40 line-through">
                           {taka(o.original_price)}
                         </div>
                       ) : null}
                       {basis && (
-                        <div className="tnum text-[11px] text-muted">
+                        <div className="tnum text-[11px] text-white/50">
                           {unitPrice(o.price, basis)}
                         </div>
                       )}
                     </>
                   ) : (
-                    <span className="text-xs font-medium text-faint">Out of stock</span>
+                    <span className="text-xs font-medium text-white/40">Out of stock</span>
                   )}
                 </div>
               </div>
 
-              <div className="mt-2.5 flex items-center justify-end gap-2">
+              <div className="mt-3 flex items-center justify-end gap-2">
                 {o.in_stock && (
                   <button
                     onClick={() => handleAdd(o)}
-                    className={`h-8 rounded-lg px-3 text-xs font-semibold transition-all active:scale-95 ${
+                    className={`h-8 rounded-full px-4 text-xs font-black transition-all active:scale-95 ${
                       addedKey === `${o.store_product_id}`
-                        ? "bg-save text-white shadow-xs"
-                        : "border border-line bg-card text-ink hover:border-brand hover:bg-brand/5 hover:text-brand"
+                        ? "bg-save text-white shadow-md"
+                        : "border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black shadow-sm"
                     }`}
                   >
                     {addedKey === `${o.store_product_id}` ? "Added ✓" : "+ Add to Basket"}
@@ -237,7 +232,7 @@ export function AggregatedGroupCard({ group }: { group: AggregatedGroup }) {
                   href={api.clickUrl(o.store_product_id)}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-card px-2.5 text-xs font-medium text-muted transition-colors hover:border-line-strong hover:text-ink"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
                 >
                   <span>Visit</span>
                   <svg
